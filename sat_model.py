@@ -21,17 +21,18 @@ scene = rc.Scene()
 
 class RidgidBody():
 	""" A physical unbending object free to move and rotate in space """
-	def __init__(self, I, m, CM,  mesh, init_pos=[0,0,0], init_rot=[0,0,0], init_vel=[0,0,0], init_omg=[0,0,0]):
+	def __init__(self, I, m, CM,  mesh, init_pos=[0,0,0], init_rot=[1,0,0,0], init_vel=[0,0,0], init_omg=[0,0,0]):
 		""" I:		3x3 float array		rotational inertia
 			m:		float				mass
 			CM:		3 float vector		centre of mass
 			mesh:	ractave mesh		shape of body
 			init_pos:	3 float vector	initial linear displacement in [x, y, z]
-			init_rot:	3 float vector	initial rotational displacement in [i, j, k]
+			init_rot:	4 float vector	initial rotational displacement in [a, b, c, d]
 			init_vel:	3 float vector	initial linear velocity in [x, y, z]
-			init_omg:	3 float vector	initial angular velocity in [i, j, k]
+			init_omg:	3 float vector	initial angular velocity in [x, y, z]
 		"""
 		self.I = I
+		self.I_inv = np.linalg.inv(I)
 		# print(I)
 		# print(np.diag(I))
 		# self.local_axis = np.linalg.eig(np.diag(I))
@@ -40,9 +41,9 @@ class RidgidBody():
 		self.CM = CM
 		self.mesh = mesh
 		self.pos = np.array(init_pos) # position
-		self.rot = Quaternion(0, *init_rot) # rotation
+		self.rot = Quaternion(*init_rot) # rotation
 		self.mom = m*np.array(init_vel) # momentum
-		self.anm = I*np.array(init_omg) # angular momentum
+		self.anm = np.matmul(I,np.array(init_omg)) # angular momentum
 
 	def update(self, del_t): # TODO: implement an actual ODE solver
 		""" Update using Euler's method.
@@ -50,9 +51,18 @@ class RidgidBody():
 		"""
 		f_ext = np.array([0,0,0])
 		τ_ext = np.array([0,0,0])
-		self.mesh.position.x = 0
-		self.mesh.position.y = 0
-		self.mesh.position.z = 0
+
+		self.mom = self.mom + del_t*f_ext
+		vel = self.mom/m
+		self.anm = self.anm + del_t*τ_ext
+		omg = np.matmul(self.I_inv,self.anm)
+		omg_norm = np.linalg.norm(omg)
+
+		self.pos = self.pos + del_t*vel
+		self.rot = self.rot * Quaternion(axis=omg/omg_norm, angle=del_t*omg_norm)
+
+		self.mesh.position = self.pos
+		self.mesh.rotation = rc.coordinates.RotationQuaternion(*self.rot) # TODO: is there a way to update these without instantiating an object each time?
 
 	def solve(self, t_end, f_ext, τ_ext): # TODO: implement this
 		""" Compute the position at time t_end given force and torque profiles.
@@ -118,7 +128,7 @@ class Environment():
 			self.curr_t = 0
 
 		for obj in self.objects:
-			obj.update(self.curr_t)
+			obj.update(dt)
 
 
 	def move_camera(self, dt):
@@ -168,14 +178,12 @@ if __name__ == '__main__':
 		 [-4.039e-6,  7.858e-5,  7.820e-9],
 		 [ -1.060e-7, 7.820e-9,  1.743e-4]]
 
-	I_inv = np.linalg.inv(I)
-
 	# kg
 	m = 0.05223934 
 	# m --> check coordinates
 	CM = [0.00215328, -0.00860001, -0.00038142]
 
-	satellite = RidgidBody(I, m, CM,  sat_mesh)
+	satellite = RidgidBody(I, m, CM, sat_mesh, init_vel=[-.02, .04, -.06], init_omg=[.6, -.4, .2])
 
 
 
