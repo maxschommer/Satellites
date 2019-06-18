@@ -9,6 +9,8 @@ from pyglet.window import key
 import ratcave as rc
 
 
+dipole_moment = np.array([0, 0, 0]) # A*m^2
+B_earth = np.array([35e-6, 0, 0]) # T
 
 window = pyglet.window.Window()
 scene = rc.Scene()
@@ -91,8 +93,6 @@ class Environment():
 		# print(curr_t)
 		self.curr_t = self.curr_t + dt
 
-		dipole_moment = np.array([0, 0, .5]) # A*m^2
-		B_earth = np.array([35e-6, 0, 0]) # T
 		for obj in self.objects:
 			obj.update(dt,
 					τ_ext=lambda t,pos,rot,mom,anm: np.cross(rot.rotate(dipole_moment), B_earth)) # torque from a constant magnetic dipole
