@@ -14,11 +14,23 @@ import ratcave as rc
 # Make a 1d angle solver
 # Make a 3d angle solver
 # Integrate them
+t_span = 20
+
 window = pyglet.window.Window()
 scene = rc.Scene()
 
 class RidgidBody():
-	def __init__(self, I, m, CM,  mesh, init_pos=[[0,0,0,0,0,0],[0,0,0,0,0,0]]):
+	""" A physical unbending object free to move and rotate in space """
+	def __init__(self, I, m, CM,  mesh, init_pos=[0,0,0], init_rot=[0,0,0], init_vel=[0,0,0], init_omg=[0,0,0]):
+		""" I:		3x3 float array		rotational inertia
+			m:		float				mass
+			CM:		3 float vector		centre of mass
+			mesh:	ractave mesh		shape of body
+			init_pos:	3 float vector	initial linear displacement in [x, y, z]
+			init_rot:	3 float vector	initial rotational displacement in [i, j, k]
+			init_vel:	3 float vector	initial linear velocity in [x, y, z]
+			init_omg:	3 float vector	initial angular velocity in [i, j, k]
+		"""
 		self.I = I
 		# print(I)
 		# print(np.diag(I))
@@ -27,43 +39,59 @@ class RidgidBody():
 		self.m = m
 		self.CM = CM
 		self.mesh = mesh
-		# init 
+		self.pos = np.array(init_pos) # position
+		self.rot = Quaternion(0, *init_rot) # rotation
+		self.mom = m*np.array(init_vel) # momentum
+		self.anm = I*np.array(init_omg) # angular momentum
 
-	def update(self, curr_t):
-		# print(sol.sol(curr_t))
-		self.mesh.position.x = sol.sol(curr_t)[0]  # dt is the time between frames
-		self.mesh.position.y = sol.sol(curr_t)[2]
-		self.mesh.position.z = sol.sol(curr_t)[4]
+	def update(self, del_t): # TODO: implement an actual ODE solver
+		""" Update using Euler's method.
+			del_t:	float	the amount of time to jump forward
+		"""
+		f_ext = np.array([0,0,0])
+		τ_ext = np.array([0,0,0])
+		self.mesh.position.x = 0
+		self.mesh.position.y = 0
+		self.mesh.position.z = 0
+
+	def solve(self, t_end, f_ext, τ_ext): # TODO: implement this
+		""" Compute the position at time t_end given force and torque profiles.
+			t_end:	float						the time of the desired solution
+			f_ext:	3 float vector of (float)	the external force at a given time
+			τ_ext:	3 float vector of (float)	the external force at a given time
+		"""
+		raise NotImplementedError()
 
 
-def f(t, A):
-	# return 0
-	return np.array([-.5*A[0], -.5*A[2], -.5*A[4]])
-	# if y[0] < 0:
-	# 	return -.5*y[0]
-	# else:
-	# 	return -.5*y[0]
+# def f(t, A):
+# 	# return 0
+# 	return np.array([-.5*A[0], -.5*A[2], -.5*A[4]])
+# 	# if y[0] < 0:
+# 	# 	return -.5*y[0]
+# 	# else:
+# 	# 	return -.5*y[0]
 
-def oscillator(t, A):
-	# dydt = [[x', x''/m],
-	#         [y', y''/m],
-	#         [z', z''/m]
-	f_ext = f(t, A)
-	dydt = [[A[1], f_ext[0]/m],
-			[A[3], f_ext[1]/m],
-			[A[5], f_ext[2]/m]]
-	return dydt
-m = 1
-init = np.asarray([.2, -.1, 0, .1, 0, 0])
+# def oscillator(t, A):
+# 	# dydt = [[x', x''/m],
+# 	#         [y', y''/m],
+# 	#         [z', z''/m]
+# 	f_ext = f(t, A)
+# 	dydt = [[A[1], f_ext[0]/m],
+# 			[A[3], f_ext[1]/m],
+# 			[A[5], f_ext[2]/m]]
+# 	return dydt
+# m = 1
+# init = np.asarray([.2, -.1, 0, .1, 0, 0])
 
-t_span = 20
-sol = solve_ivp(oscillator, [0, t_span], init,
-				vectorized=True, 
-				 dense_output=True)
-t = np.linspace(0, t_span, 200)
+# t_span = 20
+# sol = solve_ivp(oscillator, [0, t_span], init,
+# 				vectorized=True, 
+# 				 dense_output=True)
+# t = np.linspace(0, t_span, 200)
 
 
 class Environment():
+	""" A space of objects with methods to render them """
 	def __init__(self, objects):
 		self.curr_t = 0
 		self.keys = key.KeyStateHandler()
