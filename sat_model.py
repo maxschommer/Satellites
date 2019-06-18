@@ -21,7 +21,9 @@ scene = rc.Scene()
 
 class RidgidBody():
 	""" A physical unbending object free to move and rotate in space """
-	def __init__(self, I, m, CM,  mesh, init_pos=[0,0,0], init_rot=[1,0,0,0], init_vel=[0,0,0], init_omg=[0,0,0]):
+	def __init__(
+			self, I, m, CM,  mesh,
+			init_pos=[0,0,0], init_rot=[1,0,0,0], init_vel=[0,0,0], init_omg=[0,0,0]):
 		""" I:		3x3 float array		rotational inertia
 			m:		float				mass
 			CM:		3 float vector		centre of mass
@@ -33,68 +35,36 @@ class RidgidBody():
 		"""
 		self.I = I
 		self.I_inv = np.linalg.inv(I)
-		# print(I)
-		# print(np.diag(I))
-		# self.local_axis = np.linalg.eig(np.diag(I))
-		# print(self.local_axis)
 		self.m = m
 		self.CM = CM
 		self.mesh = mesh
 		self.pos = np.array(init_pos) # position
 		self.rot = Quaternion(*init_rot) # rotation
 		self.mom = m*np.array(init_vel) # momentum
-		self.anm = np.matmul(I,np.array(init_omg)) # angular momentum
+		self.anm = self.rot.rotate(np.matmul(I,self.rot.conjugate.rotate(np.array(init_omg)))) # angular momentum
+		self.t = 0
 
-	def update(self, del_t, f_ext, τ_ext): # TODO: implement an actual ODE solver
-		""" Update using Euler's method.
-			del_t:	float	the amount of time to jump forward
+
+	def update(self, del_t, f_ext, τ_ext):
+		""" Update using an actual ODE solver.
+			t_end:	float								the time of the desired solution
+			f_ext:	3 float vector of (float, 13 float vector)	the external force at a given time and state
+			τ_ext:	3 float vector of (float, 13 float vector)	the external force at a given time
 		"""
-		self.mom = self.mom + del_t*f_ext
-		vel = self.mom/m
-		self.anm = self.anm + del_t*τ_ext
-		omg = self.rot.rotate(np.matmul(self.I_inv,self.rot.conjugate.rotate(self.anm))) # make sure to use the correct ref frame when multiplying by I^-1
-		omg_norm = np.linalg.norm(omg)
+		def state_derivative(t, state):
+			pos, rot, mom, anm = state[0:3], Quaternion(state[3:7]), state[7:10], state[10:13]
+			vel = mom/self.m
+			omg = rot.rotate(np.matmul(self.I_inv,rot.conjugate.rotate(anm))) # make sure to use the correct ref frame when multiplying by I^-1
+			return [*vel, *(1/2*Quaternion(0,*omg)*rot), *f_ext(t, state), *τ_ext(t, state)]
 
-		self.pos = self.pos + del_t*vel
-		self.rot = self.rot + del_t*1/2*Quaternion(0,*omg)*self.rot
+		state = [*self.pos, *self.rot, *self.mom, *self.anm]
+		sol = solve_ivp(state_derivative, [self.t, self.t+del_t], state)
+		state = sol.y[:,-1]
+		self.pos, self.rot, self.mom, self.anm = state[0:3], Quaternion(state[3:7]), state[7:10], state[10:13]
 
 		self.mesh.position = self.pos
 		self.mesh.rotation = rc.coordinates.RotationQuaternion(*self.rot) # TODO: is there a way to update these without instantiating an object each time?
-
-	def solve(self, t_end, f_ext, τ_ext): # TODO: implement this
-		""" Compute the position at time t_end given force and torque profiles.
-			t_end:	float						the time of the desired solution
-			f_ext:	3 float vector of (float)	the external force at a given time
-			τ_ext:	3 float vector of (float)	the external force at a given time
-		"""
-		raise NotImplementedError()
-
-
-# def f(t, A):
-# 	# return 0
-# 	return np.array([-.5*A[0], -.5*A[2], -.5*A[4]])
-# 	# if y[0] < 0:
-# 	# 	return -.5*y[0]
-# 	# else:
-# 	# 	return -.5*y[0]
-
-# def oscillator(t, A):
-# 	# dydt = [[x', x''/m],
-# 	#         [y', y''/m],
-# 	#         [z', z''/m]
-# 	f_ext = f(t, A)
-# 	dydt = [[A[1], f_ext[0]/m],
-# 			[A[3], f_ext[1]/m],
-# 			[A[5], f_ext[2]/m]]
-# 	return dydt
-# m = 1
-# init = np.asarray([.2, -.1, 0, .1, 0, 0])
-
-# t_span = 20
-# sol = solve_ivp(oscillator, [0, t_span], init,
-# 				vectorized=True, 
-# 				 dense_output=True)
-# t = np.linspace(0, t_span, 200)
+		self.t += del_t
 
 
 class Environment():
@@ -123,7 +93,7 @@ class Environment():
 			self.curr_t = 0
 
 		for obj in self.objects:
-			obj.update(dt, f_ext=np.array([0,0,0]), τ_ext=np.array([0,0,0]))
+			obj.update(dt, f_ext=lambda t,state: np.zeros(3), τ_ext=lambda t,state: np.zeros(3))
 
 
 	def move_camera(self, dt):
