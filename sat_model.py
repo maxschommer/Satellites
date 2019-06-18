@@ -9,12 +9,6 @@ from pyglet.window import key
 import ratcave as rc
 
 
-# Make a 1d position solver
-# Make a 3d position solver
-# Make a 1d angle solver
-# Make a 3d angle solver
-# Integrate them
-t_span = 20
 
 window = pyglet.window.Window()
 scene = rc.Scene()
@@ -38,6 +32,8 @@ class RidgidBody():
 		self.m = m
 		self.CM = np.array(CM)
 		self.mesh = mesh
+		self.mesh.rotation = rc.coordinates.RotationQuaternion(1, 0, 0, 0)
+
 		self.pos = np.array(init_pos) + self.CM # position
 		self.rot = Quaternion(*init_rot) # rotation
 		self.mom = m*np.array(init_vel) # momentum
@@ -68,7 +64,7 @@ class RidgidBody():
 		self.pos, self.rot, self.mom, self.anm = state[0:3], Quaternion(state[3:7]), state[7:10], state[10:13]
 
 		self.mesh.position = self.pos - self.rot.rotate(self.CM)
-		self.mesh.rotation = rc.coordinates.RotationQuaternion(*self.rot) # TODO: is there a way to update these without instantiating an object each time?
+		self.mesh.rotation.w, self.mesh.rotation.x, self.mesh.rotation.y, self.mesh.rotation.z = self.rot
 		self.t += del_t
 
 
@@ -94,8 +90,6 @@ class Environment():
 	def update(self, dt):
 		# print(curr_t)
 		self.curr_t = self.curr_t + dt
-		if (self.curr_t > t_span):
-			self.curr_t = 0
 
 		for obj in self.objects:
 			obj.update(dt)
@@ -147,7 +141,7 @@ if __name__ == '__main__':
 		 [-4.039e-6,  7.858e-5,  7.820e-9],
 		 [ -1.060e-7, 7.820e-9,  1.743e-4]] # kg*m^2
 	m = 0.05223934 # kg
-	CM = [0.00215328, -0.00860001, -0.00038142] # m --> check coordinates # TODO: is it rotating about its centre of mass?
+	CM = [0.00215328, -0.00860001, -0.00038142] # m --> check coordinates
 	v0 = [-.02, .04, -.06] # m/s
 	w0 = [.6, -.4, .2] # rad/s
 
