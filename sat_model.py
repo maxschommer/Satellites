@@ -49,12 +49,10 @@ class RidgidBody():
 		""" Update using Euler's method.
 			del_t:	float	the amount of time to jump forward
 		"""
-		rot_mat = self.rot.rotation_matrix # I was looking into using Euler's equations to try to avoid this step, but this PhD from Intel seems to think this is the best way
-		I_inv_rot = np.matmul(np.matmul(rot_mat, self.I_inv), rot_mat.transpose()) # TODO: see if I really need to do these matrix multiplications, or if there's a faster way
 		self.mom = self.mom + del_t*f_ext
 		vel = self.mom/m
 		self.anm = self.anm + del_t*τ_ext
-		omg = np.matmul(I_inv_rot,self.anm)
+		omg = self.rot.rotate(np.matmul(self.I_inv,self.rot.conjugate.rotate(self.anm))) # make sure to use the correct ref frame when multiplying by I^-1
 		omg_norm = np.linalg.norm(omg)
 
 		self.pos = self.pos + del_t*vel
@@ -178,7 +176,7 @@ if __name__ == '__main__':
 	# kg
 	m = 0.05223934 
 	# m --> check coordinates
-	CM = [0.00215328, -0.00860001, -0.00038142]
+	CM = [0.00215328, -0.00860001, -0.00038142] # TODO: is it rotating about its centre of mass?
 
 	satellite = RidgidBody(I, m, CM, sat_mesh, init_vel=[-.02, .04, -.06], init_omg=[.6, -.4, .2])
 
