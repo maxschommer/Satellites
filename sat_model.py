@@ -45,13 +45,10 @@ class RidgidBody():
 		self.mom = m*np.array(init_vel) # momentum
 		self.anm = np.matmul(I,np.array(init_omg)) # angular momentum
 
-	def update(self, del_t): # TODO: implement an actual ODE solver
+	def update(self, del_t, f_ext, τ_ext): # TODO: implement an actual ODE solver
 		""" Update using Euler's method.
 			del_t:	float	the amount of time to jump forward
 		"""
-		f_ext = np.array([0,0,0])
-		τ_ext = np.array([0,0,0])
-
 		rot_mat = self.rot.rotation_matrix # I was looking into using Euler's equations to try to avoid this step, but this PhD from Intel seems to think this is the best way
 		I_inv_rot = np.matmul(np.matmul(rot_mat, self.I_inv), rot_mat.transpose()) # TODO: see if I really need to do these matrix multiplications, or if there's a faster way
 		self.mom = self.mom + del_t*f_ext
@@ -61,7 +58,7 @@ class RidgidBody():
 		omg_norm = np.linalg.norm(omg)
 
 		self.pos = self.pos + del_t*vel
-		self.rot = self.rot * Quaternion(axis=omg/omg_norm, angle=del_t*omg_norm)
+		self.rot = self.rot + del_t*1/2*Quaternion(0,*omg)*self.rot
 
 		self.mesh.position = self.pos
 		self.mesh.rotation = rc.coordinates.RotationQuaternion(*self.rot) # TODO: is there a way to update these without instantiating an object each time?
@@ -113,8 +110,6 @@ class Environment():
 		scene.camera.position.xyz = 0, 0, 2
 		scene.bgColor = 1, 1, 1
 
-		
-
 		pyglet.clock.schedule(self.move_camera)
 		pyglet.clock.schedule(self.update)
 
@@ -130,7 +125,7 @@ class Environment():
 			self.curr_t = 0
 
 		for obj in self.objects:
-			obj.update(dt)
+			obj.update(dt, f_ext=np.array([0,0,0]), τ_ext=np.array([0,0,0]))
 
 
 	def move_camera(self, dt):
