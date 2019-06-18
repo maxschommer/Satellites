@@ -1,7 +1,8 @@
 import sklearn
 import matplotlib.pyplot as plt
-from scipy.integrate import solve_ivp
 import numpy as np
+from scipy.integrate import solve_ivp
+from pyquaternion import Quaternion
 import pyglet
 from pyglet.gl import *
 from pyglet.window import key

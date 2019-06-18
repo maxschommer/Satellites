@@ -1,0 +1,6 @@
+matplotlib # for plotting
+numpy # for numbers
+scipy # for integrating
+pyglet # manages windows and multimedia for ratcave
+ratcave # renders and animates 3d things
+pyquaternion # because quaternions are cool
