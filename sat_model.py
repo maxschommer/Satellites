@@ -52,10 +52,12 @@ class RidgidBody():
 		f_ext = np.array([0,0,0])
 		τ_ext = np.array([0,0,0])
 
+		rot_mat = self.rot.rotation_matrix # I was looking into using Euler's equations to try to avoid this step, but this PhD from Intel seems to think this is the best way
+		I_inv_rot = np.matmul(np.matmul(rot_mat, self.I_inv), rot_mat.transpose()) # TODO: see if I really need to do these matrix multiplications, or if there's a faster way
 		self.mom = self.mom + del_t*f_ext
 		vel = self.mom/m
 		self.anm = self.anm + del_t*τ_ext
-		omg = np.matmul(self.I_inv,self.anm)
+		omg = np.matmul(I_inv_rot,self.anm)
 		omg_norm = np.linalg.norm(omg)
 
 		self.pos = self.pos + del_t*vel
