@@ -36,33 +36,38 @@ class RidgidBody():
 		self.I = I
 		self.I_inv = np.linalg.inv(I)
 		self.m = m
-		self.CM = CM
+		self.CM = np.array(CM)
 		self.mesh = mesh
-		self.pos = np.array(init_pos) # position
+		self.pos = np.array(init_pos) + self.CM # position
 		self.rot = Quaternion(*init_rot) # rotation
 		self.mom = m*np.array(init_vel) # momentum
 		self.anm = self.rot.rotate(np.matmul(I,self.rot.conjugate.rotate(np.array(init_omg)))) # angular momentum
 		self.t = 0
 
+		self.update(0)
 
-	def update(self, del_t, f_ext, τ_ext):
+
+	def update(self, del_t, f_ext=None, τ_ext=None):
 		""" Update using an actual ODE solver.
-			t_end:	float								the time of the desired solution
-			f_ext:	3 float vector of (float, 13 float vector)	the external force at a given time and state
-			τ_ext:	3 float vector of (float, 13 float vector)	the external force at a given time
+			t_end:	float															the time of the desired solution
+			f_ext:	3 vector of (float, 3 vector, Quaternion, 3 vector, 3 vector)	the external force at a given time and state
+			τ_ext:	3 vector of (float, 3 vector, Quaternion, 3 vector, 3 vector)	the external force at a given time
 		"""
+		if f_ext is None:	f_ext = lambda *args: np.zeros(3)
+		if τ_ext is None:	τ_ext = lambda *args: np.zeros(3)
+
 		def state_derivative(t, state):
 			pos, rot, mom, anm = state[0:3], Quaternion(state[3:7]), state[7:10], state[10:13]
 			vel = mom/self.m
 			omg = rot.rotate(np.matmul(self.I_inv,rot.conjugate.rotate(anm))) # make sure to use the correct ref frame when multiplying by I^-1
-			return [*vel, *(1/2*Quaternion(0,*omg)*rot), *f_ext(t, state), *τ_ext(t, state)]
+			return [*vel, *(1/2*Quaternion(0,*omg)*rot), *f_ext(t, pos, rot, mom, anm), *τ_ext(t, pos, rot, mom, anm)]
 
 		state = [*self.pos, *self.rot, *self.mom, *self.anm]
 		sol = solve_ivp(state_derivative, [self.t, self.t+del_t], state)
 		state = sol.y[:,-1]
 		self.pos, self.rot, self.mom, self.anm = state[0:3], Quaternion(state[3:7]), state[7:10], state[10:13]
 
-		self.mesh.position = self.pos
+		self.mesh.position = self.pos - self.rot.rotate(self.CM)
 		self.mesh.rotation = rc.coordinates.RotationQuaternion(*self.rot) # TODO: is there a way to update these without instantiating an object each time?
 		self.t += del_t
 
@@ -93,7 +98,7 @@ class Environment():
 			self.curr_t = 0
 
 		for obj in self.objects:
-			obj.update(dt, f_ext=lambda t,state: np.zeros(3), τ_ext=lambda t,state: np.zeros(3))
+			obj.update(dt)
 
 
 	def move_camera(self, dt):
@@ -138,17 +143,15 @@ if __name__ == '__main__':
 	# Create Mesh
 	sat_mesh = sat_reader.get_mesh("Frame", position=(0, 0, 0), scale=.01)
 
-	# kg*m^2
 	I = [[9.759e-5,  -4.039e-6, -1.060e-7],
 		 [-4.039e-6,  7.858e-5,  7.820e-9],
-		 [ -1.060e-7, 7.820e-9,  1.743e-4]]
+		 [ -1.060e-7, 7.820e-9,  1.743e-4]] # kg*m^2
+	m = 0.05223934 # kg
+	CM = [0.00215328, -0.00860001, -0.00038142] # m --> check coordinates # TODO: is it rotating about its centre of mass?
+	v0 = [-.02, .04, -.06] # m/s
+	w0 = [.6, -.4, .2] # rad/s
 
-	# kg
-	m = 0.05223934 
-	# m --> check coordinates
-	CM = [0.00215328, -0.00860001, -0.00038142] # TODO: is it rotating about its centre of mass?
-
-	satellite = RidgidBody(I, m, CM, sat_mesh, init_vel=[-.02, .04, -.06], init_omg=[.6, -.4, .2])
+	satellite = RidgidBody(I, m, CM, sat_mesh, init_vel=v0, init_omg=w0)
 
 
 
