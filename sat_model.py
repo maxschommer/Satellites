@@ -7,6 +7,7 @@ from pyglet.gl import *
 from pyglet.window import key
 import ratcave as rc
 
+
 # Make a 1d position solver
 # Make a 3d position solver
 # Make a 1d angle solver
@@ -18,13 +19,17 @@ scene = rc.Scene()
 class RidgidBody():
 	def __init__(self, I, m, CM,  mesh, init_pos=[[0,0,0,0,0,0],[0,0,0,0,0,0]]):
 		self.I = I
+		# print(I)
+		# print(np.diag(I))
+		# self.local_axis = np.linalg.eig(np.diag(I))
+		# print(self.local_axis)
 		self.m = m
 		self.CM = CM
 		self.mesh = mesh
-		init 
+		# init 
 
 	def update(self, curr_t):
-		print(sol.sol(curr_t))
+		# print(sol.sol(curr_t))
 		self.mesh.position.x = sol.sol(curr_t)[0]  # dt is the time between frames
 		self.mesh.position.y = sol.sol(curr_t)[2]
 		self.mesh.position.z = sol.sol(curr_t)[4]
@@ -132,6 +137,9 @@ sat_mesh = sat_reader.get_mesh("Frame", position=(0, 0, 0), scale=.01)
 I = [[9.759e-5,  -4.039e-6, -1.060e-7],
 	 [-4.039e-6,  7.858e-5,  7.820e-9],
 	 [ -1.060e-7, 7.820e-9,  1.743e-4]]
+
+I_inv = np.linalg.inv(I)
+
 # kg
 m = 0.05223934 
 # m --> check coordinates
