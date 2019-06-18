@@ -101,59 +101,60 @@ class Environment():
 
 
 
-# f = 1
+if __name__ == '__main__':
+	# f = 1
 
-# def integrand(t, y0):
+	# def integrand(t, y0):
 
-# 	a = f / m * t
-# 	v = a * t + y0[0]
-# 	p = v * t + y0[1]
-# 	return p
+	# 	a = f / m * t
+	# 	v = a * t + y0[0]
+	# 	p = v * t + y0[1]
+	# 	return p
 
-# y0 = (0,0)
+	# y0 = (0,0)
 
-# I = RK45(integrand, 0, y0, 2)
-# I.step()
+	# I = RK45(integrand, 0, y0, 2)
+	# I.step()
 
-# f_dense = I.dense_output()
+	# f_dense = I.dense_output()
 
-# t = np.linspace(0, 20)
-# # print(t)
-# print(f_dense(t))
-# plt.plot(t, f_dense(t)[0])
-# # plt.plot(t, integrand(t, (a,b)))
-# plt.show()
-
-
-
-# Insert filename into WavefrontReader.
-obj_filename = rc.resources.obj_primitives
-sat_reader = rc.WavefrontReader("Meshes/ThinSatFrame.obj")
-obj_reader = rc.WavefrontReader(obj_filename)
-# Create Mesh
-sat_mesh = sat_reader.get_mesh("Frame", position=(0, 0, 0), scale=.01)
-
-# kg*m^2
-I = [[9.759e-5,  -4.039e-6, -1.060e-7],
-	 [-4.039e-6,  7.858e-5,  7.820e-9],
-	 [ -1.060e-7, 7.820e-9,  1.743e-4]]
-
-I_inv = np.linalg.inv(I)
-
-# kg
-m = 0.05223934 
-# m --> check coordinates
-CM = [0.00215328, -0.00860001, -0.00038142]
-
-satellite = RidgidBody(I, m, CM,  sat_mesh)
+	# t = np.linspace(0, 20)
+	# # print(t)
+	# print(f_dense(t))
+	# plt.plot(t, f_dense(t)[0])
+	# # plt.plot(t, integrand(t, (a,b)))
+	# plt.show()
 
 
 
+	# Insert filename into WavefrontReader.
+	obj_filename = rc.resources.obj_primitives
+	sat_reader = rc.WavefrontReader("Meshes/ThinSatFrame.obj")
+	obj_reader = rc.WavefrontReader(obj_filename)
+	# Create Mesh
+	sat_mesh = sat_reader.get_mesh("Frame", position=(0, 0, 0), scale=.01)
 
-# Create Scene
+	# kg*m^2
+	I = [[9.759e-5,  -4.039e-6, -1.060e-7],
+		 [-4.039e-6,  7.858e-5,  7.820e-9],
+		 [ -1.060e-7, 7.820e-9,  1.743e-4]]
 
-env = Environment([satellite])
+	I_inv = np.linalg.inv(I)
+
+	# kg
+	m = 0.05223934 
+	# m --> check coordinates
+	CM = [0.00215328, -0.00860001, -0.00038142]
+
+	satellite = RidgidBody(I, m, CM,  sat_mesh)
 
 
 
-pyglet.app.run()
+
+	# Create Scene
+
+	env = Environment([satellite])
+
+
+
+	pyglet.app.run()
