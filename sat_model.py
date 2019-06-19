@@ -15,6 +15,39 @@ B_earth = np.array([35e-6, 0, 0]) # T
 window = pyglet.window.Window()
 scene = rc.Scene()
 
+
+class Debug():
+	def __init__(
+			self,
+			init_pos=[0,0,0],
+			init_rot=[1,0,0,0]):
+		self.pos = init_pos
+		self.rot = init_rot
+
+	def update(self, del_t, **kwargs):
+		pass
+
+class Arrow(Debug):
+	def __init__(
+			self,
+			init_pos=[0,0,0],
+			init_rot=[1,0,0,0],
+			body=None):
+		super().__init__(init_pos, init_rot)
+		arrow_reader = rc.WavefrontReader("Meshes/Resources/arrow.obj")
+		self.mesh = arrow_reader.get_mesh("Arrow", position=(0, 0, 0), scale=.01, mean_center=False)
+		self.mesh.rotation = rc.coordinates.RotationQuaternion(1, 0, 0, 0)
+		self.body = body
+
+
+	def update(self, del_t, **kwargs):
+		if self.body:
+			rot_t  = self.body.rot * Quaternion(np.sqrt(.5),np.sqrt(.5),  0, 0)#, rc.coordinates.RotationQuaternion(1, 0, 0, 1))
+			print(self.mesh.rotation)
+			self.mesh.rotation.w, self.mesh.rotation.x, self.mesh.rotation.y, self.mesh.rotation.z = rot_t
+			self.mesh.position = self.body.pos
+
+
 class RidgidBody():
 	""" A physical unbending object free to move and rotate in space """
 	def __init__(
@@ -52,8 +85,7 @@ class RidgidBody():
 			τ_ext:	3 vector of (float, 3 vector, Quaternion, 3 vector, 3 vector)	the external force at a given time
 		"""
 		if f_ext is None:	f_ext = lambda *args: np.zeros(3)
-		if τ_ext is None:	τ_ext = lambda *args: np.zeros(3)
-
+		if τ_ext is None:	τ_ext = lambda *args: np.zeros(3) 
 		def state_derivative(t, state):
 			pos, rot, mom, anm = state[0:3], Quaternion(state[3:7]), state[7:10], state[10:13]
 			vel = mom/self.m
@@ -134,11 +166,9 @@ if __name__ == '__main__':
 
 
 	# Insert filename into WavefrontReader.
-	obj_filename = rc.resources.obj_primitives
 	sat_reader = rc.WavefrontReader("Meshes/ThinSatFrame.obj")
-	obj_reader = rc.WavefrontReader(obj_filename)
 	# Create Mesh
-	sat_mesh = sat_reader.get_mesh("Frame", position=(0, 0, 0), scale=.01)
+	sat_mesh = sat_reader.get_mesh("Frame", position=(0, 0, 0), scale=.01, mean_center=False)
 
 	I = [[9.759e-5,  -4.039e-6, -1.060e-7],
 		 [-4.039e-6,  7.858e-5,  7.820e-9],
@@ -152,10 +182,10 @@ if __name__ == '__main__':
 
 
 
-
+	debug_arrow = Arrow(body=satellite)
 	# Create Scene
 
-	env = Environment([satellite])
+	env = Environment([satellite, debug_arrow])
 
 
 
