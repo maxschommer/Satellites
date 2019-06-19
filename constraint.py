@@ -61,7 +61,7 @@ class HingeJointConstraint(Constraint):
 			axis_b:		3 float vector	the direction of the hinge in the second body's coordinate frame
 		"""
 		super().__init__(body_a, body_b)
-		axis_b = body_b.rot.rotate(body_a.rot.conjugate.rotate(axis_a))
+		axis_b = body_b.init_rotation.rotate(body_a.init_rotation.conjugate.rotate(axis_a))
 		self.sub_constraint_α = BallJointConstraint(body_a, body_b, np.array(point_a)+axis_a, np.array(point_b)+axis_b)
 		self.sub_constraint_β = BallJointConstraint(body_a, body_b, np.array(point_a)-axis_a, np.array(point_b)-axis_b)
 
