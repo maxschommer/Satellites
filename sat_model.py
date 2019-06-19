@@ -8,6 +8,8 @@ from pyglet.gl import *
 from pyglet.window import key
 import ratcave as rc
 
+from constraint import BallJointConstraint, HingeJointConstraint
+
 
 dipole_moment = np.array([0, 0, 0]) # A*m^2
 B_earth = np.array([35e-6, 0, 0]) # T
@@ -15,7 +17,8 @@ B_earth = np.array([35e-6, 0, 0]) # T
 window = pyglet.window.Window()
 scene = rc.Scene()
 
-class RidgidBody():
+
+class RidgidBody(object):
 	""" A physical unbending object free to move and rotate in space """
 	def __init__(
 			self, I, m, CM,  mesh,
@@ -72,7 +75,7 @@ class RidgidBody():
 
 class Environment():
 	""" A space of objects with methods to render them """
-	def __init__(self, objects):
+	def __init__(self, objects=[], constraints=[]):
 		self.curr_t = 0
 		self.keys = key.KeyStateHandler()
 		window.push_handlers(self.keys)
@@ -137,8 +140,6 @@ if __name__ == '__main__':
 	obj_filename = rc.resources.obj_primitives
 	sat_reader = rc.WavefrontReader("Meshes/ThinSatFrame.obj")
 	obj_reader = rc.WavefrontReader(obj_filename)
-	# Create Mesh
-	sat_mesh = sat_reader.get_mesh("Frame", position=(0, 0, 0), scale=.01)
 
 	I = [[9.759e-5,  -4.039e-6, -1.060e-7],
 		 [-4.039e-6,  7.858e-5,  7.820e-9],
@@ -146,16 +147,27 @@ if __name__ == '__main__':
 	m = 0.05223934 # kg
 	CM = [0.00215328, -0.00860001, -0.00038142] # m --> check coordinates
 	v0 = [-.02, .04, -.06] # m/s
-	w0 = [.6, -.4, .2] # rad/s
+	ω0 = [.4, -.6, .2] # rad/s
 
-	satellite = RidgidBody(I, m, CM, sat_mesh, init_vel=v0, init_omg=w0)
+	satellite_l = RidgidBody(I, m, CM,
+			sat_reader.get_mesh("Frame", position=(0, 0, 0), scale=.01),
+			init_pos=[-1,0,0], init_vel=v0, init_omg=ω0)
+	satellite_c = RidgidBody(I, m, CM,
+			sat_reader.get_mesh("Frame", position=(0, 0, 0), scale=.01),
+			init_pos=[0,0,0], init_vel=v0, init_omg=ω0[::-1])
+	satellite_r = RidgidBody(I, m, CM,
+			sat_reader.get_mesh("Frame", position=(0, 0, 0), scale=.01),
+			init_pos=[1,0,0], init_vel=v0, init_omg=[0,0,0])
 
-
+	hinge_l = HingeJointConstraint(satellite_l, satellite_c, [.5,0,0], [-.5,0,0], [0,1,0])
+	hinge_r = HingeJointConstraint(satellite_c, satellite_r, [.5,0,0], [-.5,0,0], [0,1,0])
 
 
 	# Create Scene
 
-	env = Environment([satellite])
+	env = Environment(
+			objects=[satellite_l, satellite_c, satellite_r],
+			constraints=[hinge_l])
 
 
 
