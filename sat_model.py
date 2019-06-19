@@ -20,10 +20,14 @@ if __name__ == '__main__':
 	I = [[9.759e-5,  -4.039e-6, -1.060e-7],
 		 [-4.039e-6,  7.858e-5,  7.820e-9],
 		 [ -1.060e-7, 7.820e-9,  1.743e-4]] # kg*m^2
+	# I = [[1,0,0],
+	# 	 [0,1,0],
+	# 	 [0,0,1]]
 	m = 0.05223934 # kg
 	cm = [0.00215328, -0.00860001, -0.00038142] # m --> check coordinates
-	v0 = [.01,0, 0] # m/s
-	ω0 = [.4, -.6, .2] # rad/s
+	# cm = [0, 0, .1]
+	v0 = [0,0, 0] # m/s
+	ω0 = [.3, 1, -.6] # rad/s
 
 	satellite_l = RigidBody(I, m, cm, init_position=[-.1,0,0], init_velocity=v0, init_angularv=ω0)
 	satellite_c = RigidBody(I, m, cm, init_position=[0,0,0], init_velocity=v0, init_angularv=ω0)
@@ -44,14 +48,15 @@ if __name__ == '__main__':
 		# VectorActor(satellite_l, "Resources/arrow->Arrow", "xaxis"),
 		# VectorActor(satellite_l, "Resources/arrow->Arrow", "yaxis"),
 		# VectorActor(satellite_l, "Resources/arrow->Arrow", "zaxis")
-		VectorActor(satellite_l, "Resources/arrow->Arrow", "velocity")
+		# VectorActor(satellite_l, "Resources/arrow->Arrow", "velocity")
+		VectorActor(satellite_l, "Resources/arrow->Arrow", "angularv")
 		], environment)
 
 
 	window = pyglet.window.Window()
 	scene = rc.Scene(
 			meshes=[a.mesh for a in stage.actors],
-			camera=rc.Camera(position=(0, 0, .2)),
+			camera=rc.Camera(position=(0, 0, .4)),
 			bgColor=(1, 1, .9))
 
 	@window.event

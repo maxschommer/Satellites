@@ -43,7 +43,7 @@ class VectorActor(Actor):
 	def update(self, t):
 		position = self.body.get_position(t)
 		rotation = self.body.get_rotation(t)
-		self.mesh.position = position - rotation.rotate(self.body.cm_position+self.mounting_point)
+		self.mesh.position = position + rotation.rotate(self.mounting_point)
 
 		if self.quantity == "xaxis":
 			assign_wxyz(self.mesh.rotation, self.body.get_rotation(t)*Z_AX_ROTATION.inverse)
@@ -53,9 +53,16 @@ class VectorActor(Actor):
 			assign_wxyz(self.mesh.rotation, self.body.get_rotation(t)*X_AX_ROTATION)
 		elif self.quantity == "velocity":
 			v = self.body.get_velocity(t)
-			assign_wxyz(self.mesh.rotation, Quaternion(axis=[v[2],0,-v[0]], angle=np.arccos(v[1]/np.linalg.norm(v))))
-		elif self.quantity == "angularvelocity":
-			assign_wxyz(self.mesh.rotation, Quaternion(vector=self.body.get_angular_velocity(t))*Quaternion(0,0,-1,0))
+			if v[0] == 0 and v[2] == 0:
+				assign_wxyz(self.mesh.rotation, [0,0,0,0])
+			else:
+				assign_wxyz(self.mesh.rotation, Quaternion(axis=[v[2],0,-v[0]], angle=np.arccos(v[1]/np.linalg.norm(v))))
+		elif self.quantity == "angularv":
+			ω = self.body.get_angularv(t)
+			if ω[0] == 0 and ω[2] == 0:
+				assign_wxyz(self.mesh.rotation, [0,0,0,0])
+			else:
+				assign_wxyz(self.mesh.rotation, Quaternion(axis=[ω[2],0,-ω[0]], angle=np.arccos(ω[1]/np.linalg.norm(ω))))
 		else:
 			raise ValueError("Unrecognised vector quantity: {}".format(self.quantity))
 
@@ -71,7 +78,7 @@ class Stage():
 		self.t = self.t + dt
 		if self.t > self.environment.max_t:
 			return
-			
+
 		for a in self.actors:
 			a.update(self.t)
 

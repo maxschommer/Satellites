@@ -36,7 +36,7 @@ class RigidBody():
 		momentum = self.environment.solution.sol(t)[13*self.body_num+7:13*self.body_num+10]
 		return momentum/self.m
 
-	def get_angular_velocity(self, t):
+	def get_angularv(self, t):
 		angular_momentum = self.environment.solution.sol(t)[13*self.body_num+10:13*self.body_num+13]
 		return self.get_rotation(t).rotate(np.matmul(self.I_inv,self.get_rotation(t).inverse.rotate(angular_momentum)))
 
