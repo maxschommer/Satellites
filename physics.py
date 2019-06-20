@@ -55,11 +55,11 @@ class Environment():
 		def solvation(t, state):
 			state_derivative = []
 			for i, entity in enumerate(self.entities):
-				pos, rot = state[13*i:13*i+3], Quaternion(state[13*i+3:13*i+7])
-				mom, anm = state[13*i+7:13*i+10], state[13*i+10:13*i+13]
-				velocity = mom/entity.m
-				angularv = rot.rotate(np.matmul(entity.I_inv,rot.inverse.rotate(anm))) # make sure to use the correct ref frame when multiplying by I^-1
-				state_derivative.extend([*velocity, *(Quaternion(0,*angularv)*rot/2), 0,0,0, 0,0,0])
+				position, rotation = state[13*i:13*i+3], Quaternion(state[13*i+3:13*i+7])
+				momentum, angularm = state[13*i+7:13*i+10], state[13*i+10:13*i+13]
+				velocity = momentum/entity.m
+				angularv = rotation.rotate(np.matmul(entity.I_inv,rotation.inverse.rotate(angularm))) # make sure to use the correct ref frame when multiplying by I^-1
+				state_derivative.extend([*velocity, *(Quaternion(0,*angularv)*rotation/2), 0,0,0, 0,0,0])
 			return state_derivative
 
 		initial_state = []
