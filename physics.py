@@ -101,9 +101,9 @@ class Impulsor():
 			angularv:	3 vector	the current angular velocity of body
 			return		3 vector	the applied force on body
 		"""
-		raise NotImplementedException("Should be implemented by subclass.")
+		return np.zeros(3)
 
-	def force_on(self, body, time, position, rotation, velocity, angularv):
+	def torque_on(self, body, time, position, rotation, velocity, angularv):
 		""" Compute the force applied by this Impulsor on the given body, given the time and that body's state.
 			body:		RigidBody	the body on which this might be acting
 			time:		float		the current time
@@ -113,4 +113,22 @@ class Impulsor():
 			angularv:	3 vector	the current angular velocity of body
 			return		3 vector	the applied torque on body
 		"""
-		raise NotImplementedException("Should be implemented by subclass.")
+		return np.zeros(3)
+
+
+class MagneticDipole(Impulsor):
+	""" External torque imparted by a uniform magnetic field on a magnetic body. """
+	def __init__(self, body, dipole_moment, external_field):
+		""" body:	RigidBody	the body on which the torque is applied
+			dipole_moment:	3 vector	the magnetic dipole moment of the body in its reference frame
+			external_field:	3 vector	the magnetic flux density of the environment
+		"""
+		self.body = body
+		self.moment = dipole_moment
+		self.field = external_field
+
+	def torque_on(self, body, time, position, rotation, velocity, angularv):
+		if body is self.body:
+			return np.cross(rotation.rotate(self.moment), self.field)
+		else:
+			return np.zeros(3)
