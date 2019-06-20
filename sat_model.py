@@ -30,8 +30,8 @@ if __name__ == '__main__':
 	m = 0.05223934 # kg
 	cm = [0.00215328, -0.00860001, -0.00038142] # m --> check coordinates
 	# cm = [0, 0, .1]
-	v0 = [.04,.02,-.01] # m/s
-	ω0 = [.3, 1, -.6] # rad/s
+	v0 = [.04,.01,-.02] # m/s
+	ω0 = [-.3,.6, .1] # rad/s
 
 	satellite_l = RigidBody(I, m, cm, init_position=[-.1,0,0], init_velocity=v0, init_angularv=ω0)
 	satellite_c = RigidBody(I, m, cm, init_position=[0,0,0], init_velocity=v0, init_angularv=ω0)
@@ -41,19 +41,20 @@ if __name__ == '__main__':
 	hinge_r = HingeJointConstraint(satellite_c, satellite_r, [.5,0,0], [-.5,0,0], [0,1,0])
 
 	environment = Environment(
-			entities=[satellite_l, satellite_c, satellite_r],
-			constraints=[hinge_l, hinge_r])
+			bodies=[satellite_l, satellite_c, satellite_r],
+			constraints=[hinge_l, hinge_r],
+			external_impulsors=[])
 	environment.solve(0, 30)
 
 	stage = Stage([
 		BodyActor(satellite_l, "ThinSatFrame->Frame"),
 		BodyActor(satellite_c, "ThinSatFrame->Frame"),
 		BodyActor(satellite_r, "ThinSatFrame->Frame"),
-		# VectorActor(satellite_l, "Resources/arrow->Arrow", "xaxis"),
-		# VectorActor(satellite_l, "Resources/arrow->Arrow", "yaxis"),
-		# VectorActor(satellite_l, "Resources/arrow->Arrow", "zaxis"),
-		VectorActor(satellite_l, "Resources/arrow->Arrow", "velocity"),
-		VectorActor(satellite_l, "Resources/arrow->Arrow", "angularv"),
+		# VectorActor(satellite_l, "xaxis", "Resources/arrow->Arrow"),
+		# VectorActor(satellite_l, "yaxis", "Resources/arrow->Arrow"),
+		# VectorActor(satellite_l, "zaxis", "Resources/arrow->Arrow"),
+		VectorActor(satellite_l, "velocity", "Resources/arrow->Arrow"),
+		VectorActor(satellite_l, "angularv", "Resources/arrow->Arrow"),
 	], environment)
 
 
@@ -61,7 +62,7 @@ if __name__ == '__main__':
 	scene = rc.Scene(
 			meshes=[a.mesh for a in stage.actors],
 			camera=rc.Camera(position=(0, 0, .4)),
-			bgColor=(1, 1, .9))
+			bgColor=(0, 0, .1))
 
 	@window.event
 	def on_draw():

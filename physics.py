@@ -42,31 +42,75 @@ class RigidBody():
 
 
 class Environment():
-	def __init__(self, entities, constraints=[], external_force_generators=[]):
-		self.entities = entities
+	""" A collection of bodies, constraints, and external forces that manages them all together. """
+	def __init__(self, bodies, constraints=[], external_impulsors=[]):
+		""" bodies:				[RigidBody]		the list of bodies in the Universe
+			constraints:		[Constraint]	the list of constraints between bodies to keep satisfied
+			external_impulsors:	[Impulsor]		the list of environmental factors that interact with the system
+		"""
+		self.bodies = bodies
 		self.constraints = constraints
-		for i, entity in enumerate(entities):
+		self.external_impulsors = external_impulsors
+		for i, entity in enumerate(bodies):
 			entity.body_num = i
 			entity.environment = self
 		self.solution = None
 		self.max_t = None
 
 	def solve(self, t0, tf):
+		""" Solve the Universe and save the solution in self.solution.
+			t0:	float	the time at which to start solving
+			tf:	float	the final time about which we care
+		"""
 		def solvation(t, state):
 			state_derivative = []
-			for i, entity in enumerate(self.entities):
+			for i, entity in enumerate(self.bodies):
 				position, rotation = state[13*i:13*i+3], Quaternion(state[13*i+3:13*i+7])
 				momentum, angularm = state[13*i+7:13*i+10], state[13*i+10:13*i+13]
 				velocity = momentum/entity.m
 				angularv = rotation.rotate(np.matmul(entity.I_inv,rotation.inverse.rotate(angularm))) # make sure to use the correct ref frame when multiplying by I^-1
-				state_derivative.extend([*velocity, *(Quaternion(0,*angularv)*rotation/2), 0,0,0, 0,0,0])
+				force, torque = np.zeros(3), np.zeros(3)
+				for imp in self.external_impulsors:
+					force += imp.force_on(entity, t, position, rotation, velocity, angularv)
+					torque += imp.torque_on(entity, t, position, rotation, velocity, angularv)
+				state_derivative.extend([*velocity, *(Quaternion(0,*angularv)*rotation/2), *force, *torque])
 			return state_derivative
 
 		initial_state = []
-		for e in self.entities:
-			initial_state.extend(e.init_position)
-			initial_state.extend(e.init_rotation)
-			initial_state.extend(e.m*e.init_velocity)
-			initial_state.extend(e.init_rotation.rotate(np.matmul(e.I,e.init_rotation.inverse.rotate(e.init_angularv))))
+		for b in self.bodies:
+			initial_state.extend(b.init_position)
+			initial_state.extend(b.init_rotation)
+			initial_state.extend(b.m*b.init_velocity)
+			initial_state.extend(b.init_rotation.rotate(np.matmul(b.I,b.init_rotation.inverse.rotate(b.init_angularv))))
 		self.solution = solve_ivp(solvation, [t0, tf], initial_state, dense_output=True)
 		self.max_t = tf
+
+
+class Impulsor():
+	""" An entity that imparts linear and/or angular momentum to the system. """
+	def __init__(self):
+		pass
+
+	def force_on(self, body, time, position, rotation, velocity, angularv):
+		""" Compute the force applied by this Impulsor on the given body, given the time and that body's state.
+			body:		RigidBody	the body on which this might be acting
+			time:		float		the current time
+			position:	3 vector	the current position of body
+			rotation:	Quaternion	the current rotation of body
+			velocity:	3 vector	the current linear velocity of body
+			angularv:	3 vector	the current angular velocity of body
+			return		3 vector	the applied force on body
+		"""
+		raise NotImplementedException("Should be implemented by subclass.")
+
+	def force_on(self, body, time, position, rotation, velocity, angularv):
+		""" Compute the force applied by this Impulsor on the given body, given the time and that body's state.
+			body:		RigidBody	the body on which this might be acting
+			time:		float		the current time
+			position:	3 vector	the current position of body
+			rotation:	Quaternion	the current rotation of body
+			velocity:	3 vector	the current linear velocity of body
+			angularv:	3 vector	the current angular velocity of body
+			return		3 vector	the applied torque on body
+		"""
+		raise NotImplementedException("Should be implemented by subclass.")

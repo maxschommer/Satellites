@@ -15,7 +15,11 @@ ANGULARV_SCALE = .002
 
 
 class Actor():
+	""" A visual representation of some entity in physical space. """
 	def __init__(self, model, mesh_readers={}):
+		""" model:			str						"{file address of mesh file}->{internal address of mesh form}"
+			mesh_readers:	{str:WavefrontReader}	a dictionary of existing mesh readers for different files
+		"""
 		model_directory, model_name = model.split("->")
 		if model_directory not in mesh_readers:
 			mesh_readers[model_directory] = rc.WavefrontReader("Meshes/{}.obj".format(model_directory))
@@ -23,11 +27,18 @@ class Actor():
 		self.mesh.rotation = rc.coordinates.RotationQuaternion(1, 0, 0, 0)
 
 	def update(self, t):
+		""" Move the mesh for a new time if necessary.
+			t	float	the current time in seconds
+		"""
 		pass
 
 
 class BodyActor(Actor):
+	""" An Actor that represents the physical form of a RigidBody. """
 	def __init__(self, body, model):
+		""" body	RigidBody	the body to depict
+			model	str			"{file address of mesh file}->{internal address of mesh form}"
+		"""
 		super().__init__(model)
 		self.body = body
 
@@ -39,7 +50,12 @@ class BodyActor(Actor):
 
 
 class VectorActor(Actor):
-	def __init__(self, body, model, quantity, mounting_point=[0,0,0]):
+	""" An Actor that represents a vector quantity. """
+	def __init__(self, body, quantity, model, mounting_point=[0,0,0]):
+		""" body		RigidBody	the body posessing the quantity to depict
+			quantity	str			the name of the quantity to depict
+			model		str			"{file address of mesh file}->{internal address of mesh form}"
+		"""
 		super().__init__(model)
 		self.body = body
 		self.quantity = quantity
@@ -75,13 +91,21 @@ class VectorActor(Actor):
 
 
 class Stage():
+	""" A group of actors with functions for updating and displaying them """
 	def __init__(self, actors, environment, speed=1):
+		""" actors:			[Actor]		the list of Actors visible on this stage
+			environment:	Environment	the Environment of bodies, so that we know about the physical solution we're showing
+			speed:			float		the factor of realtime at which to animate
+		"""
 		self.actors = actors
 		self.environment = environment
 		self.t = 0
 		self.update(0)
 
 	def update(self, dt):
+		""" Move all Actors into updated positions.
+			dt:	float	the number of seconds of realtime that have proressed
+		"""
 		self.t = self.t + dt
 		if self.t > self.environment.max_t:
 			return
@@ -92,4 +116,8 @@ class Stage():
 
 
 def assign_wxyz(ratcave_garbage, actual_quaternion):
+	""" Assign a Quaternion value to a ractave.coordinates.RotationQuaternion without creating a new object.
+		ratcave_garbage:	RotationQuaternion	the object that needs to have its fields reset despite having no convenient methods for doing so
+		actual_quaternion:	Quaternion			the mostly decent object that has the four values to be transferred
+	"""
 	ratcave_garbage.w, ratcave_garbage.x, ratcave_garbage.y, ratcave_garbage.z = actual_quaternion
