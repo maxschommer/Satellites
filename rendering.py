@@ -75,17 +75,17 @@ class VectorActor(Actor):
 		elif self.quantity == "velocity":
 			v = self.body.get_velocity(t)
 			if v[0] == 0 and v[2] == 0:
-				assign_wxyz(self.mesh.rotation, [0,0,0,0])
+				assign_wxyz(self.mesh.rotation, [1,0,0,0])
 			else:
 				assign_wxyz(self.mesh.rotation, Quaternion(axis=[v[2],0,-v[0]], angle=np.arccos(v[1]/np.linalg.norm(v))))
-			self.mesh.scale.y = VELOCITY_SCALE*np.linalg.norm(v)
+			self.mesh.scale.y = max(1e-6, VELOCITY_SCALE*np.linalg.norm(v))
 		elif self.quantity == "angularv":
 			ω = self.body.get_angularv(t)
 			if ω[0] == 0 and ω[2] == 0:
-				assign_wxyz(self.mesh.rotation, [0,0,0,0])
+				assign_wxyz(self.mesh.rotation, [1,0,0,0])
 			else:
 				assign_wxyz(self.mesh.rotation, Quaternion(axis=[ω[2],0,-ω[0]], angle=np.arccos(ω[1]/np.linalg.norm(ω))))
-			self.mesh.scale.y = ANGULARV_SCALE*np.linalg.norm(ω)
+			self.mesh.scale.y = max(1e-6, ANGULARV_SCALE*np.linalg.norm(ω))
 		else:
 			raise ValueError("Unrecognised vector quantity: {}".format(self.quantity))
 

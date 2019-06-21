@@ -30,8 +30,10 @@ if __name__ == '__main__':
 	m = 0.05223934 # kg
 	cm = [0.00215328, -0.00860001, -0.00038142] # m --> check coordinates
 	# cm = [0, 0, .1]
-	v0 = [.01,.005,-.02] # m/s
-	ω0 = [-.3,.6, .1] # rad/s
+	# v0 = [.01,.005,-.02] # m/s
+	# ω0 = [-.2,.4, .05] # rad/s
+	v0 = [0, 0, 0]
+	ω0 = [0, 0, 0]
 
 	satellite_l = RigidBody(I, m, cm, init_position=[-.1,0,0], init_velocity=v0, init_angularv=ω0)
 	satellite_c = RigidBody(I, m, cm, init_position=[0,0,0], init_velocity=v0, init_angularv=ω0)
@@ -44,13 +46,14 @@ if __name__ == '__main__':
 				satellite_r,
 			],
 			constraints=[
-				HingeJointConstraint(satellite_l, satellite_c, [.5,0,0], [-.5,0,0], [0,1,0]),
-				HingeJointConstraint(satellite_c, satellite_r, [.5,0,0], [-.5,0,0], [0,1,0]),
+				BallJointConstraint(satellite_l, satellite_c, [.05,.05,-.005], [-.05,.05,-.005])
+				# HingeJointConstraint(satellite_l, satellite_c, [.05,0,-.005], [-.05,0,-.005], [0,1,0]),
+				# HingeJointConstraint(satellite_c, satellite_r, [.05,0,-.005], [-.05,0,-.005], [0,1,0]),
 			],
 			external_impulsors=[
 				MagneticDipole(satellite_l, dipole_moment, B_earth),
 			])
-	environment.solve(0, 15)
+	environment.solve(0, 20)
 
 	stage = Stage([
 		BodyActor(satellite_l, "ThinSatFrame->Frame"),

@@ -1,3 +1,4 @@
+import matplotlib.pyplot as plt
 import numpy as np
 from scipy.integrate import solve_ivp
 from pyquaternion import Quaternion
@@ -37,8 +38,9 @@ class RigidBody():
 		return momentum/self.m
 
 	def get_angularv(self, t):
+		I_inv_rot = np.matmul(np.matmul(self.get_rotation(t).rotation_matrix,self.I_inv),self.get_rotation(t).rotation_matrix.transpose())
 		angular_momentum = self.environment.solution.sol(t)[13*self.body_num+10:13*self.body_num+13]
-		return self.get_rotation(t).rotate(np.matmul(self.I_inv,self.get_rotation(t).inverse.rotate(angular_momentum)))
+		return np.matmul(I_inv_rot,angular_momentum)
 
 
 class Environment():
@@ -55,7 +57,7 @@ class Environment():
 			entity.body_num = i
 			entity.environment = self
 		self.solution = None
-		self.max_t = None
+		self.max_t = None # TODO: automatically add in displacements and impulses to initially satisfy constraints
 
 	def solve(self, t0, tf):
 		""" Solve the Universe and save the solution in self.solution.
@@ -63,18 +65,54 @@ class Environment():
 			tf:	float	the final time about which we care
 		"""
 		def solvation(t, state):
-			state_derivative = []
-			for i, entity in enumerate(self.bodies):
-				position, rotation = state[13*i:13*i+3], Quaternion(state[13*i+3:13*i+7])
-				momentum, angularm = state[13*i+7:13*i+10], state[13*i+10:13*i+13]
-				velocity = momentum/entity.m
-				angularv = rotation.rotate(np.matmul(entity.I_inv,rotation.inverse.rotate(angularm))) # make sure to use the correct ref frame when multiplying by I^-1
-				force, torque = np.zeros(3), np.zeros(3)
+			position, rotation, velocity, angularv, I_inv_rot = [], [], [], [], []
+			for i, body in enumerate(self.bodies): # first unpack the state vector
+				position.append(state[13*i:13*i+3])
+				rotation.append(Quaternion(state[13*i+3:13*i+7]))
+				I_inv_rot.append(np.matmul(np.matmul(rotation[i].rotation_matrix,body.I_inv),rotation[i].rotation_matrix.transpose()))
+				velocity.append(state[13*i+7:13*i+10]/body.m)
+				angularv.append(np.matmul(I_inv_rot[i], state[13*i+10:13*i+13])) # make sure to use the correct ref frame when multiplying by I^-1
+
+			y = np.zeros((7*len(self.bodies))) # now, go through the bodies and get each's part of
+			y_dot = np.zeros((7*len(self.bodies))) # the positional components of the state and its derivatives
+			y_ddot = np.zeros((7*len(self.bodies)))
+			state_dot = np.zeros((13*len(self.bodies))) # as well as the derivative of state, usable by the ODE solver
+			for i, body in enumerate(self.bodies):
+				force, torque = np.zeros(3), np.zeros(3) # incorporate external forces and moments
 				for imp in self.external_impulsors:
-					force += imp.force_on(entity, t, position, rotation, velocity, angularv)
-					torque += imp.torque_on(entity, t, position, rotation, velocity, angularv)
-				state_derivative.extend([*velocity, *(Quaternion(0,*angularv)*rotation/2), *force, *torque])
-			return state_derivative
+					force += imp.force_on(body, t, position[i], rotation[i], velocity[i], angularv[i])
+					torque += imp.torque_on(body, t, position[i], rotation[i], velocity[i], angularv[i])
+				accelr8n, angulara = force/body.m, np.matmul(I_inv_rot[i], torque)
+
+				angularv_q = 1/2*Quaternion(vector=angularv[i])*rotation[i] # put these vectors in quaternion form
+				angulara_q = 1/2*(Quaternion(vector=angulara)*rotation[i] + Quaternion(vector=angularv[i])*angularv_q) # TODO: THIS DOES NOT ACCOUNT FOR THE TUMBLING TERM YET
+
+				y[7*i:7*i+7] = np.concatenate((position[i], [*rotation[i]])) # finally, compile everything into the desired formats
+				y_dot[7*i:7*i+7] = np.concatenate((velocity[i], [*angularv_q]))
+				y_ddot[7*i:7*i+7] = np.concatenate((accelr8n, [*angulara_q])) # noting that y_ddot is incomplete without constraint forces
+				state_dot[13*i:13*i+13] = np.concatenate((velocity[i], [*angularv_q], force, torque))
+
+			num_constraints = sum([c.num_dof for c in self.constraints]) # Now account for constraints!
+			J_c = np.zeros((num_constraints, 7*len(self.bodies))) # Sorry if my variable names in this part aren't the most descriptive.
+			J_c_dot = np.zeros((num_constraints, 7*len(self.bodies))) # It's because I don't really understand what's going on
+			R = np.zeros((7*len(self.bodies), num_constraints))
+			j = 0
+			for constraint in self.constraints:
+				i_a, i_b = constraint.body_a.body_num, constraint.body_b.body_num
+				prvω_a = position[i_a], rotation[i_a], velocity[i_a], angularv[i_a]
+				prvω_b = position[i_b], rotation[i_b], velocity[i_b], angularv[i_b]
+				J_c_j = constraint.constraint_jacobian(*prvω_a, *prvω_b)
+				J_c_dot_j = constraint.constraint_derivative_jacobian(*prvω_a, *prvω_b)
+				R_j = constraint.force_response(*prvω_a, *prvω_b)
+				for k, i in [(0, i_a), (1, i_b)]:
+					J_c[j:j+constraint.num_dof, 7*i:7*i+7] = J_c_j[:, 7*k:7*k+7]
+					J_c_dot[j:j+constraint.num_dof, 7*i:7*i+7] = J_c_dot_j[:, 7*k:7*k+7]
+					R[7*i:7*i+7, j:j+constraint.num_dof] = R_j[7*k:7*k+7, :]
+				j += constraint.num_dof
+
+			 # TODO: solve for constraints, add force and torque to state_dot
+
+			return state_dot
 
 		initial_state = []
 		for b in self.bodies:
