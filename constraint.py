@@ -10,7 +10,7 @@ BASIS_QUATERNIONS = [Quaternion(1,0,0,0), Quaternion(0,1,0,0), Quaternion(0,0,1,
 
 
 class Constraint(object):
-	""" A law that applies internal forces and torques to two RigidBodys. """
+	""" A law that applies internal forces and torkes to two RigidBodys. """
 	def __init__(self, body_a, body_b):
 		self.body_a = body_a
 		self.body_b = body_b
@@ -93,11 +93,7 @@ class BallJointConstraint(Constraint):
 		super().__init__(body_a, body_b)
 		self.point_a = np.array(point_a) - body_a.cm_position
 		self.point_b = np.array(point_b) - body_b.cm_position # all internal calculations measure point_a and point_b from the centre of mass
-		self.num_dof = 3
-
-		# body_b.position = body_a.position + body_a.rotation.rotate(point_a) - body_b.rotation.rotate(point_b) # adjust starting conditions such
-		# body_b.velocity = body_a.velocity + np.cross(body_a.angularv,body_a.rotation.rotate(point_a)) -       # that constraint is initially met
-		# 		np.cross(body_b.angularv,body_b.rotation.rotate(point_b))
+		self.num_dof = 3 # x force on a, y force on a, z force on a
 
 	def constraint_values(self,
 			position_a, rotation_a, velocity_a, angularv_a,
@@ -117,10 +113,11 @@ class BallJointConstraint(Constraint):
 		rot_a_dependency = np.zeros((3, 4))
 		rot_b_dependency = np.zeros((3, 4))
 		for i in range(4):
-			rot_a_dependency[:,i] = (rotation_a*BASIS_QUATERNIONS[i]*Quaternion(vector=self.point_a) +
-					BASIS_QUATERNIONS[i]*Quaternion(vector=self.point_a)*rotation_a).vector
-			rot_b_dependency[:,i] = (-rotation_b*BASIS_QUATERNIONS[i]*Quaternion(vector=self.point_b) +
-					BASIS_QUATERNIONS[i]*Quaternion(vector=self.point_b)*rotation_b).vector
+			s = 1 if i==0 else -1
+			rot_a_dependency[:,i] = (BASIS_QUATERNIONS[i]*Quaternion(vector=self.point_a)*rotation_a.conjugate +
+					s*rotation_a*Quaternion(vector=self.point_a)*BASIS_QUATERNIONS[i]).vector
+			rot_b_dependency[:,i] = -(BASIS_QUATERNIONS[i]*Quaternion(vector=self.point_b)*rotation_b.conjugate +
+					s*rotation_b*Quaternion(vector=self.point_b)*BASIS_QUATERNIONS[i]).vector
 		return np.hstack((pos_a_dependency, rot_a_dependency, pos_b_dependency, rot_b_dependency))
 
 	def constraint_derivative_jacobian(self,
@@ -131,10 +128,11 @@ class BallJointConstraint(Constraint):
 		rot_a_dependency = np.zeros((3, 4))
 		rot_b_dependency = np.zeros((3, 4))
 		for i in range(4):
-			rot_a_dependency[:,i] = np.cross(angularv_a, (rotation_a*BASIS_QUATERNIONS[i]*Quaternion(vector=self.point_a) +
-					BASIS_QUATERNIONS[i]*Quaternion(vector=self.point_a)*rotation_a).vector)
-			rot_b_dependency[:,i] = -np.cross(angularv_b, (rotation_b*BASIS_QUATERNIONS[i]*Quaternion(vector=self.point_b) +
-					BASIS_QUATERNIONS[i]*Quaternion(vector=self.point_b)*rotation_b).vector)
+			s = 1 if i==0 else -1
+			rot_a_dependency[:,i] = 1/2*(-BASIS_QUATERNIONS[i]*Quaternion(vector=self.point_a)*Quaternion(vector=angularv_a)*rotation_a.conjugate +
+					s*Quaternion(vector=angularv_a)*rotation_a*Quaternion(vector=self.point_a)*BASIS_QUATERNIONS[i]).vector
+			rot_b_dependency[:,i] = -1/2*(-BASIS_QUATERNIONS[i]*Quaternion(vector=self.point_b)*Quaternion(vector=angularv_b)*rotation_b.conjugate +
+					s*Quaternion(vector=angularv_b)*rotation_b*Quaternion(vector=self.point_b)*BASIS_QUATERNIONS[i]).vector
 		return np.hstack((pos_a_dependency, rot_a_dependency, pos_b_dependency, rot_b_dependency))
 
 	def force_response(self,
@@ -147,19 +145,21 @@ class BallJointConstraint(Constraint):
 		for i in range(3):
 			I_inv_rot_a = np.matmul(np.matmul(rotation_a.rotation_matrix,self.body_a.I_inv),rotation_a.rotation_matrix.transpose())
 			I_inv_rot_b = np.matmul(np.matmul(rotation_b.rotation_matrix,self.body_b.I_inv),rotation_b.rotation_matrix.transpose())
-			rot_a_response[:,i] = [*1/2*Quaternion(vector=np.matmul(I_inv_rot_a, np.cross(rotation_a.rotate(self.point_a), BASIS_VECTORS[i])))*rotation_a]
-			rot_b_response[:,i] = [*-1/2*Quaternion(vector=np.matmul(I_inv_rot_b, np.cross(rotation_b.rotate(self.point_b), BASIS_VECTORS[i])))*rotation_b]
+			rot_a_response[:,i] = list(
+				1/2*Quaternion(vector=np.matmul(I_inv_rot_a, np.cross(rotation_a.rotate(self.point_a), BASIS_VECTORS[i])))*rotation_a)
+			rot_b_response[:,i] = list(
+				-1/2*Quaternion(vector=np.matmul(I_inv_rot_b, np.cross(rotation_b.rotate(self.point_b), BASIS_VECTORS[i])))*rotation_b)
 		return np.vstack((pos_a_response, rot_a_response, pos_b_response, rot_b_response))
 
-	def force_torque_on_a(self, vector,
+	def force_torke_on_a(self, vector,
 			position_a, rotation_a, velocity_a, angularv_a,
 			position_b, rotation_b, velocity_b, angularv_b):
-		return [*(vector), *(np.cross(rotation_a.rotate(self.point_a), vector))]
+		return np.concatenate((vector, np.cross(rotation_a.rotate(self.point_a), vector)))
 
-	def force_torque_on_b(self, vector,
+	def force_torke_on_b(self, vector,
 			position_a, rotation_a, velocity_a, angularv_a,
 			position_b, rotation_b, velocity_b, angularv_b):
-		return [*(-vector), *(np.cross(rotation_b.rotate(self.point_b), -vector))]
+		return np.concatenate((-vector, np.cross(rotation_b.rotate(self.point_b), -vector)))
 
 
 class HingeJointConstraint(Constraint):
@@ -176,5 +176,5 @@ class HingeJointConstraint(Constraint):
 		self.sub_constraint_α = BallJointConstraint(body_a, body_b, np.array(point_a)+axis_a, np.array(point_b)+axis_b)
 		self.sub_constraint_β = BallJointConstraint(body_a, body_b, np.array(point_a)-axis_a, np.array(point_b)-axis_b)
 
-	def force_and_torque_on_a(self, pos_a, rot_a, vel_a, omg_a, pos_b, rot_b, vel_b, omg_b):
+	def force_and_torke_on_a(self, pos_a, rot_a, vel_a, omg_a, pos_b, rot_b, vel_b, omg_b):
 		self.sub_constraint_β.frc_and_trq_on_a(pos_a, rot_a, vel_a, omg_a, pos_b, rot_b, vel_b, omg_b) # TODO: incorporate both

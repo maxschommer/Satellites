@@ -9,21 +9,21 @@ X_AX_ROTATION = Quaternion(axis=[1,0,0], degrees=90)
 Y_AX_ROTATION = Quaternion(axis=[0,1,0], degrees=90)
 Z_AX_ROTATION = Quaternion(axis=[0,0,1], degrees=90)
 
-UNIT_SCALE = .001
+UNIT_SCALE = 8.5e-4
 VELOCITY_SCALE = .02
 ANGULARV_SCALE = .002
 
 
 class Actor():
 	""" A visual representation of some entity in physical space. """
-	def __init__(self, model, mesh_readers={}):
+	def __init__(self, model, scale=1, mesh_readers={}):
 		""" model:			str						"{file address of mesh file}->{internal address of mesh form}"
 			mesh_readers:	{str:WavefrontReader}	a dictionary of existing mesh readers for different files
 		"""
 		model_directory, model_name = model.split("->")
 		if model_directory not in mesh_readers:
 			mesh_readers[model_directory] = rc.WavefrontReader("Meshes/{}.obj".format(model_directory))
-		self.mesh = mesh_readers[model_directory].get_mesh(model_name, scale=UNIT_SCALE, mean_center=False)
+		self.mesh = mesh_readers[model_directory].get_mesh(model_name, scale=scale*UNIT_SCALE, mean_center=False)
 		self.mesh.rotation = rc.coordinates.RotationQuaternion(1, 0, 0, 0)
 
 	def update(self, t):
@@ -35,11 +35,11 @@ class Actor():
 
 class BodyActor(Actor):
 	""" An Actor that represents the physical form of a RigidBody. """
-	def __init__(self, body, model):
+	def __init__(self, body, model, scale=1):
 		""" body	RigidBody	the body to depict
 			model	str			"{file address of mesh file}->{internal address of mesh form}"
 		"""
-		super().__init__(model)
+		super().__init__(model, scale=scale)
 		self.body = body
 
 	def update(self, t):
@@ -75,14 +75,14 @@ class VectorActor(Actor):
 		elif self.quantity == "velocity":
 			v = self.body.get_velocity(t)
 			if v[0] == 0 and v[2] == 0:
-				assign_wxyz(self.mesh.rotation, [1,0,0,0])
+				assign_wxyz(self.mesh.rotation, [1,0,0,0] if ω[1] > 0 else [0,1,0,0])
 			else:
 				assign_wxyz(self.mesh.rotation, Quaternion(axis=[v[2],0,-v[0]], angle=np.arccos(v[1]/np.linalg.norm(v))))
 			self.mesh.scale.y = max(1e-6, VELOCITY_SCALE*np.linalg.norm(v))
 		elif self.quantity == "angularv":
 			ω = self.body.get_angularv(t)
 			if ω[0] == 0 and ω[2] == 0:
-				assign_wxyz(self.mesh.rotation, [1,0,0,0])
+				assign_wxyz(self.mesh.rotation, [1,0,0,0] if ω[1] > 0 else [0,1,0,0])
 			else:
 				assign_wxyz(self.mesh.rotation, Quaternion(axis=[ω[2],0,-ω[0]], angle=np.arccos(ω[1]/np.linalg.norm(ω))))
 			self.mesh.scale.y = max(1e-6, ANGULARV_SCALE*np.linalg.norm(ω))
@@ -99,6 +99,7 @@ class Stage():
 		"""
 		self.actors = actors
 		self.environment = environment
+		self.speed = speed
 		self.t = 0
 		self.update(0)
 
@@ -106,7 +107,7 @@ class Stage():
 		""" Move all Actors into updated positions.
 			dt:	float	the number of seconds of realtime that have proressed
 		"""
-		self.t = self.t + dt
+		self.t = self.t + self.speed*dt
 		if self.t > self.environment.max_t:
 			return
 
