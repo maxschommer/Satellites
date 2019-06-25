@@ -22,10 +22,10 @@ class RigidBody():
 		self.body_num = None
 		self.environment = None
 
-		self.init_position = np.array(init_position)
-		self.init_rotation = Quaternion(init_rotation)
-		self.init_velocity = np.array(init_velocity)
-		self.init_angularv = np.array(init_angularv)
+		self.init_position = np.array(init_position, dtype=np.float)
+		self.init_rotation = Quaternion(init_rotation, dtype=np.float)
+		self.init_velocity = np.array(init_velocity, dtype=np.float)
+		self.init_angularv = np.array(init_angularv, dtype=np.float)
 
 	def get_position(self, t):
 		return self.environment.solution.sol(t)[13*self.body_num:13*self.body_num+3]
@@ -57,8 +57,22 @@ class Environment():
 			body.body_num = i
 			body.environment = self
 		self.solution = None
-		self.max_t = None # TODO: automatically add in displacements and impulses to initially satisfy constraints
+		self.max_t = None
 
+		positions, rotations, I_inv_rots = [], [], [] # I would also like to automatically deal with initial velocities that violate constraints
+		momentums, angularms = [], [] # luckily, the linearity of time derivatives is such that
+		for i, body in enumerate(self.bodies): # I can reuse a bunch of my regular constraint-solving code
+			positions.append(body.init_position)
+			rotations.append(body.init_rotation)
+			I_inv_rots.append(np.matmul(np.matmul(rotations[i].rotation_matrix,body.I_inv),rotations[i].rotation_matrix.transpose()))
+			momentums.append(body.m*body.init_velocity)
+			angularms.append(body.init_rotation.rotate(np.matmul(body.I,body.init_rotation.inverse.rotate(body.init_angularv)))) # make sure to use the correct ref frame when multiplying by I^-1
+		
+		reaction_impulses = self.solve_for_constraints(positions, rotations, [(0,0,0)]*len(bodies), [(0,0,0)]*len(bodies), I_inv_rots, momentums, angularms) # now account for constraints
+		for i, body in enumerate(self.bodies):
+			body.init_velocity += 1/body.m*reaction_impulses[i][0:3]
+			body.init_angularv += np.matmul(I_inv_rots[i], reaction_impulses[i][3:6])
+		
 	def solve(self, t0, tf):
 		""" Solve the Universe and save the solution in self.solution.
 			t0:	float	the time at which to start solving

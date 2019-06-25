@@ -9,7 +9,7 @@ X_AX_ROTATION = Quaternion(axis=[1,0,0], degrees=90)
 Y_AX_ROTATION = Quaternion(axis=[0,1,0], degrees=90)
 Z_AX_ROTATION = Quaternion(axis=[0,0,1], degrees=90)
 
-UNIT_SCALE = 8.5e-4
+UNIT_SCALE = 9e-4
 VELOCITY_SCALE = .02
 ANGULARV_SCALE = .002
 
