@@ -15,7 +15,7 @@ WINDOW_WIDTH = 800
 WINDOW_HEIGHT = 600
 
 dipole_moment = np.array([0, 0, 1]) # A*m^2
-B_earth = np.array([0, 0, 35e-6]) # T
+B_earth = np.array([0, 35e-6, 0]) # T
 
 
 if __name__ == '__main__':
@@ -45,8 +45,12 @@ if __name__ == '__main__':
 				satellite_r,
 			],
 			constraints=[
-				BallJointConstraint(satellite_l, satellite_c, [.05,0,0], [-.05,0,0]),
-				# HingeJointConstraint(satellite_l, satellite_c, [.05,0,-.005], [-.05,0,-.005], [0,1,0]),
+				BallJointConstraint(satellite_l, satellite_c, [.05, 1,0], [-.05, 1,0]),
+				BallJointConstraint(satellite_l, satellite_c, [.05,-1,0], [-.05,-1,0]),
+				BallJointConstraint(satellite_c, satellite_r, [.05, 1,0], [-.05, 1,0]),
+				BallJointConstraint(satellite_c, satellite_r, [.05,-1,0], [-.05,-1,0]),
+				# ParallelConstraint(satellite_l, satellite_c, [0,1,0], [0,1,0]),
+				# HingeJointConstraint(satellite_l, satellite_c, [.05,0,0], [-.05,0,], [0,1,0]),
 				# HingeJointConstraint(satellite_c, satellite_r, [.05,0,-.005], [-.05,0,-.005], [0,1,0]),
 			],
 			external_impulsors=[

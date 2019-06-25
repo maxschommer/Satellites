@@ -150,7 +150,7 @@ class Environment():
 				R[7*i:7*i+7, j:j+constraint.num_dof] = R_j[7*k:7*k+7, :]
 			j += constraint.num_dof
 
-		f = - np.matmul(np.linalg.inv(np.matmul(J_c, R)), np.matmul(J_c, y_ddot) + np.matmul(J_c_dot, y_dot)) # solve for the constraints!
+		f = - np.matmul(np.linalg.pinv(np.matmul(J_c, R)), np.matmul(J_c, y_ddot) + np.matmul(J_c_dot, y_dot)) # solve for the constraints!
 
 		reaction_forces_torkes = [np.zeros(6) for body in self.bodies]
 		for constraint in self.constraints: # apply the constraints
