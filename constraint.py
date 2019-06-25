@@ -6,7 +6,7 @@ from pyquaternion import Quaternion
 
 
 BASIS_VECTORS = [np.array([1,0,0]), np.array([0,1,0]), np.array([0,0,1])]
-BASIS_QUATERNIONS = [Quaternion(1,0,0,0), Quaternion(0,1,0,0), Quaternion(0,0,1,0), Quaternion(0,0,0,1)]
+BASIS_QUATERNIONS = [Quaternion(vector=vector) for vector in BASIS_VECTORS]
 
 
 class Constraint(object):
@@ -112,12 +112,9 @@ class BallJointConstraint(Constraint):
 		pos_b_dependency = -np.identity(3)
 		rot_a_dependency = np.zeros((3, 4))
 		rot_b_dependency = np.zeros((3, 4))
-		for i in range(4):
-			s = 1 if i==0 else -1
-			rot_a_dependency[:,i] = (BASIS_QUATERNIONS[i]*Quaternion(vector=self.point_a)*rotation_a.conjugate +
-					s*rotation_a*Quaternion(vector=self.point_a)*BASIS_QUATERNIONS[i]).vector
-			rot_b_dependency[:,i] = -(BASIS_QUATERNIONS[i]*Quaternion(vector=self.point_b)*rotation_b.conjugate +
-					s*rotation_b*Quaternion(vector=self.point_b)*BASIS_QUATERNIONS[i]).vector
+		for i in range(3):
+			rot_a_dependency[i,:] = list(-2*rotation_a*Quaternion(vector=self.point_a)*BASIS_QUATERNIONS[i])
+			rot_b_dependency[i,:] = list( 2*rotation_b*Quaternion(vector=self.point_b)*BASIS_QUATERNIONS[i])
 		return np.hstack((pos_a_dependency, rot_a_dependency, pos_b_dependency, rot_b_dependency))
 
 	def constraint_derivative_jacobian(self,
@@ -127,12 +124,9 @@ class BallJointConstraint(Constraint):
 		pos_b_dependency = -np.zeros((3, 3))
 		rot_a_dependency = np.zeros((3, 4))
 		rot_b_dependency = np.zeros((3, 4))
-		for i in range(4):
-			s = 1 if i==0 else -1
-			rot_a_dependency[:,i] = 1/2*(-BASIS_QUATERNIONS[i]*Quaternion(vector=self.point_a)*Quaternion(vector=angularv_a)*rotation_a.conjugate +
-					s*Quaternion(vector=angularv_a)*rotation_a*Quaternion(vector=self.point_a)*BASIS_QUATERNIONS[i]).vector
-			rot_b_dependency[:,i] = -1/2*(-BASIS_QUATERNIONS[i]*Quaternion(vector=self.point_b)*Quaternion(vector=angularv_b)*rotation_b.conjugate +
-					s*Quaternion(vector=angularv_b)*rotation_b*Quaternion(vector=self.point_b)*BASIS_QUATERNIONS[i]).vector
+		for i in range(3):
+			rot_a_dependency[i,:] = list(-Quaternion(vector=angularv_a)*rotation_a*Quaternion(vector=self.point_a)*BASIS_QUATERNIONS[i])
+			rot_b_dependency[i,:] = list( Quaternion(vector=angularv_b)*rotation_b*Quaternion(vector=self.point_b)*BASIS_QUATERNIONS[i])
 		return np.hstack((pos_a_dependency, rot_a_dependency, pos_b_dependency, rot_b_dependency))
 
 	def force_response(self,
