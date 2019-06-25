@@ -31,7 +31,7 @@ if __name__ == '__main__':
 	cm = [0,0,0]
 	# cm = [0, 0, .1]
 	# v0 = [.01,.005,-.02] # m/s
-	ω0 = [0,0,0]#[-.2,.4, .05] # rad/s
+	ω0 = [-.2,.4, .05] # rad/s
 	v0 = [0, 0, 0]
 
 	satellite_l = RigidBody(I, m, cm, init_position=[-.05,0,.05], init_velocity=v0, init_angularv=[0,0,0], init_rotation=[np.sqrt(.5), 0, np.sqrt(.5), 0])

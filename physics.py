@@ -116,19 +116,16 @@ class Environment():
 		if torkes is None:	torkes = [np.zeros(3)]*len(self.bodies)
 		# print("Solving for constraints...")
 
-		print("Solving for constraints...")
 		y_dot = np.zeros((7*len(self.bodies))) # now, go through the bodies and get each's part of
 		y_ddot = np.zeros((7*len(self.bodies))) # the positional components of the state and its derivatives
 		for i, body in enumerate(self.bodies):
-			xlration, angulara = forces[i]/body.m, np.matmul(I_invs[i], torkes[i])
+			xlration, angulara = forces[i]/body.m, np.matmul(I_invs[i], torkes[i]) # TODO: THIS DOES NOT ACCOUNT FOR THE TUMBLING TERM YET
 
 			angularv_q = 1/2*Quaternion(vector=angularvs[i])*rotations[i] # put these vectors in quaternion form
-			angulara_q = 1/2*(Quaternion(vector=angulara)*rotations[i] + Quaternion(vector=angularvs[i])*angularv_q) # TODO: THIS DOES NOT ACCOUNT FOR THE TUMBLING TERM YET
+			angulara_q = 1/2*(Quaternion(vector=angulara) - np.dot(angularvs[i],angularvs[i])/2)*rotations[i]
 
 			y_dot[7*i:7*i+7] = np.concatenate((velocitys[i], list(angularv_q)))
 			y_ddot[7*i:7*i+7] = np.concatenate((xlration, list(angulara_q))) # this is the acceleration y would see without constraining forces
-		print("  Current state derivative: {}".format(y_dot))
-		print("  Planned state dderivative: {}".format(y_ddot))
 
 		num_constraints = sum([c.num_dof for c in self.constraints]) # Now account for constraints!
 		c = np.zeros((num_constraints))
@@ -155,14 +152,11 @@ class Environment():
 			j += constraint.num_dof
 
 		f = - np.matmul(np.linalg.inv(np.matmul(J_c, R)), np.matmul(J_c, y_ddot) + np.matmul(J_c_dot, y_dot)) # solve for the constraints!
-		print("  Jacobian: {}".format(J_c))
-		print("  Jacobian derivative: {}".format(J_c_dot))
-		print("  Response: {}".format(R))
-		print("  Constraint response: {}".format(np.matmul(J_c, R)))
-		print("  Expected constraint derivative: {}".format(np.matmul(J_c, y_dot)))
-		print("  Expected constraint dderivative: {}".format(np.matmul(J_c, y_ddot) + np.matmul(J_c_dot, y_dot)))
-		print("  Computed constraint effects: {}".format(f))
-		print("  Constraint dderivative, accounting for reaction forces: {}".format(np.matmul(J_c, y_ddot+np.matmul(R,f)) + np.matmul(J_c_dot, y_dot)))
+		print("Current constraint value: {}".format(c))
+		print("Current constraint drift: {}".format(c_dot))
+		print("Old constraint dderivative: {}".format(np.matmul(J_c, y_ddot) + np.matmul(J_c_dot, y_dot)))
+		print("New Constraint dderivative: {}".format(np.matmul(J_c, y_ddot+np.matmul(R,f)) + np.matmul(J_c_dot, y_dot)))
+		print()
 
 		reaction_forces_torkes = [np.zeros(6) for body in self.bodies]
 		for constraint in self.constraints: # apply the constraints
@@ -172,7 +166,6 @@ class Environment():
 			reaction_forces_torkes[i_a] += constraint.force_torke_on_a(f[:constraint.num_dof], *prvω_a, *prvω_b)
 			reaction_forces_torkes[i_b] += constraint.force_torke_on_b(f[:constraint.num_dof], *prvω_a, *prvω_b)
 			f = f[constraint.num_dof:]
-		print("  Computed forces and torkes: {}".format(reaction_forces_torkes))
 
 		return reaction_forces_torkes
 

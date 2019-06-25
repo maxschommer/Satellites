@@ -113,8 +113,8 @@ class BallJointConstraint(Constraint):
 		rot_a_dependency = np.zeros((3, 4))
 		rot_b_dependency = np.zeros((3, 4))
 		for i in range(3):
-			rot_a_dependency[i,:] = list(-2*rotation_a*Quaternion(vector=self.point_a)*BASIS_QUATERNIONS[i])
-			rot_b_dependency[i,:] = list( 2*rotation_b*Quaternion(vector=self.point_b)*BASIS_QUATERNIONS[i])
+			rot_a_dependency[i,:] = list(-2*BASIS_QUATERNIONS[i]*rotation_a*Quaternion(vector=self.point_a))
+			rot_b_dependency[i,:] = list( 2*BASIS_QUATERNIONS[i]*rotation_b*Quaternion(vector=self.point_b))
 		return np.hstack((pos_a_dependency, rot_a_dependency, pos_b_dependency, rot_b_dependency))
 
 	def constraint_derivative_jacobian(self,
@@ -125,8 +125,8 @@ class BallJointConstraint(Constraint):
 		rot_a_dependency = np.zeros((3, 4))
 		rot_b_dependency = np.zeros((3, 4))
 		for i in range(3):
-			rot_a_dependency[i,:] = list(-Quaternion(vector=angularv_a)*rotation_a*Quaternion(vector=self.point_a)*BASIS_QUATERNIONS[i])
-			rot_b_dependency[i,:] = list( Quaternion(vector=angularv_b)*rotation_b*Quaternion(vector=self.point_b)*BASIS_QUATERNIONS[i])
+			rot_a_dependency[i,:] = list(-BASIS_QUATERNIONS[i]*Quaternion(vector=angularv_a)*rotation_a*Quaternion(vector=self.point_a))
+			rot_b_dependency[i,:] = list( BASIS_QUATERNIONS[i]*Quaternion(vector=angularv_b)*rotation_b*Quaternion(vector=self.point_b))
 		return np.hstack((pos_a_dependency, rot_a_dependency, pos_b_dependency, rot_b_dependency))
 
 	def force_response(self,
