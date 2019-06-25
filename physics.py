@@ -6,6 +6,8 @@ from pyquaternion import Quaternion
 import constraint
 
 
+CONSTRAINT_RECOVERY_TIME = .1 # making this smaller increases the precision with which the constraints are met, but increases the computation time
+
 
 class RigidBody():
 	""" A physical unbending object free to move and rotate in space """
@@ -68,7 +70,7 @@ class Environment():
 			momentums.append(body.m*body.init_velocity)
 			angularms.append(body.init_rotation.rotate(np.matmul(body.I,body.init_rotation.inverse.rotate(body.init_angularv)))) # make sure to use the correct ref frame when multiplying by I^-1
 		
-		reaction_impulses = self.solve_for_constraints(positions, rotations, [(0,0,0)]*len(bodies), [(0,0,0)]*len(bodies), I_inv_rots, momentums, angularms) # now account for constraints
+		reaction_impulses = self.solve_for_constraints(positions, rotations, 0, 0, I_inv_rots, momentums, angularms) # now account for constraints
 		for i, body in enumerate(self.bodies):
 			body.init_velocity += 1/body.m*reaction_impulses[i][0:3]
 			body.init_angularv += np.matmul(I_inv_rots[i], reaction_impulses[i][3:6])
@@ -79,15 +81,18 @@ class Environment():
 			tf:	float	the final time about which we care
 		"""
 		def solvation(t, state):
-			positions, rotations, velocitys, angularvs, I_inv_rots = [], [], [], [], []
+			positions, rotations, velocitys, angularvs = [], [], [], []
+			momentums, angularms, I_inv_rots = [], [], []
 			forces, torkes = [], []
 			state_dot = [] # as well as the derivative of state, usable by the ODE solver
 			for i, body in enumerate(self.bodies): # first unpack the state vector
 				positions.append(state[13*i:13*i+3])
 				rotations.append(Quaternion(state[13*i+3:13*i+7]))
+				momentums.append(state[13*i+7:13*i+10])
+				angularms.append(state[13*i+10:13*i+13])
 				I_inv_rots.append(np.matmul(np.matmul(rotations[i].rotation_matrix,body.I_inv),rotations[i].rotation_matrix.transpose()))
-				velocitys.append(state[13*i+7:13*i+10]/body.m)
-				angularvs.append(np.matmul(I_inv_rots[i], state[13*i+10:13*i+13])) # make sure to use the correct ref frame when multiplying by I^-1
+				velocitys.append(momentums[i]/body.m)
+				angularvs.append(np.matmul(I_inv_rots[i], angularms[i])) # make sure to use the correct ref frame when multiplying by I^-1
 				forces.append(np.zeros(3))
 				torkes.append(np.zeros(3))
 				for imp in self.external_impulsors: # incorporate external forces and moments
@@ -97,8 +102,9 @@ class Environment():
 			state_dot = np.array(state_dot)
 			
 			reaction_forces_torkes = self.solve_for_constraints(positions, rotations, velocitys, angularvs, I_inv_rots, forces, torkes) # now account for constraints
+			correction_impulses = self.solve_for_constraints(positions, rotations, 0, 0, I_inv_rots, momentums, angularms) # with a velocity-response term as well
 			for i, body in enumerate(self.bodies):
-				state_dot[13*i+7:13*i+13] += reaction_forces_torkes[i]
+				state_dot[13*i+7:13*i+13] += reaction_forces_torkes[i] + correction_impulses[i]/CONSTRAINT_RECOVERY_TIME
 
 			return state_dot # deliver solvation!
 
@@ -111,10 +117,9 @@ class Environment():
 		self.solution = solve_ivp(solvation, [t0, tf], initial_state, dense_output=True)
 		self.max_t = tf
 
-	def solve_for_constraints(self, positions, rotations, velocitys, angularvs, I_invs, forces=None, torkes=None):
-		if forces is None:	forces = [np.zeros(3)]*len(self.bodies)
-		if torkes is None:	torkes = [np.zeros(3)]*len(self.bodies)
-		# print("Solving for constraints...")
+	def solve_for_constraints(self, positions, rotations, velocitys, angularvs, I_invs, forces, torkes):
+		if velocitys is 0:	velocitys = [np.zeros(3)]*len(self.bodies)
+		if angularvs is 0:	angularvs = [np.zeros(3)]*len(self.bodies)
 
 		y_dot = np.zeros((7*len(self.bodies))) # now, go through the bodies and get each's part of
 		y_ddot = np.zeros((7*len(self.bodies))) # the positional components of the state and its derivatives
@@ -128,8 +133,6 @@ class Environment():
 			y_ddot[7*i:7*i+7] = np.concatenate((xlration, list(angulara_q))) # this is the acceleration y would see without constraining forces
 
 		num_constraints = sum([c.num_dof for c in self.constraints]) # Now account for constraints!
-		c = np.zeros((num_constraints))
-		c_dot = np.zeros((num_constraints)) # TODO: these two are for debugging porpoises only
 		J_c = np.zeros((num_constraints, 7*len(self.bodies))) # Sorry if my variable names in this part aren't the most descriptive.
 		J_c_dot = np.zeros((num_constraints, 7*len(self.bodies))) # It's because I don't really understand what's going on.
 		R = np.zeros((7*len(self.bodies), num_constraints))
@@ -138,25 +141,16 @@ class Environment():
 			i_a, i_b = constraint.body_a.body_num, constraint.body_b.body_num
 			prvω_a = positions[i_a], rotations[i_a], velocitys[i_a], angularvs[i_a]
 			prvω_b = positions[i_b], rotations[i_b], velocitys[i_b], angularvs[i_b]
-			c_j = constraint.constraint_values(*prvω_a, *prvω_b)
-			c_dot_j = constraint.constraint_derivative(*prvω_a, *prvω_b)
 			J_c_j = constraint.constraint_jacobian(*prvω_a, *prvω_b)
 			J_c_dot_j = constraint.constraint_derivative_jacobian(*prvω_a, *prvω_b)
 			R_j = constraint.force_response(*prvω_a, *prvω_b)
 			for k, i in [(0, i_a), (1, i_b)]:
-				c[j:j+constraint.num_dof] = c_j
-				c_dot[j:j+constraint.num_dof] = c_dot_j
 				J_c[j:j+constraint.num_dof, 7*i:7*i+7] = J_c_j[:, 7*k:7*k+7]
 				J_c_dot[j:j+constraint.num_dof, 7*i:7*i+7] = J_c_dot_j[:, 7*k:7*k+7]
 				R[7*i:7*i+7, j:j+constraint.num_dof] = R_j[7*k:7*k+7, :]
 			j += constraint.num_dof
 
 		f = - np.matmul(np.linalg.inv(np.matmul(J_c, R)), np.matmul(J_c, y_ddot) + np.matmul(J_c_dot, y_dot)) # solve for the constraints!
-		print("Current constraint value: {}".format(c))
-		print("Current constraint drift: {}".format(c_dot))
-		print("Old constraint dderivative: {}".format(np.matmul(J_c, y_ddot) + np.matmul(J_c_dot, y_dot)))
-		print("New Constraint dderivative: {}".format(np.matmul(J_c, y_ddot+np.matmul(R,f)) + np.matmul(J_c_dot, y_dot)))
-		print()
 
 		reaction_forces_torkes = [np.zeros(6) for body in self.bodies]
 		for constraint in self.constraints: # apply the constraints

@@ -15,7 +15,7 @@ WINDOW_WIDTH = 800
 WINDOW_HEIGHT = 600
 
 dipole_moment = np.array([0, 0, 1]) # A*m^2
-B_earth = np.array([0, 35e-6, 0]) # T
+B_earth = np.array([0, 0, 35e-6]) # T
 
 
 if __name__ == '__main__':
@@ -31,7 +31,7 @@ if __name__ == '__main__':
 	cm = [0,0,0]
 	# cm = [0, 0, .1]
 	# v0 = [.01,.005,-.02] # m/s
-	ω0 = [-.2,.4, .05] # rad/s
+	ω0 = [-.05,.2, -.4] # rad/s
 	v0 = [0, 0, 0]
 
 	satellite_l = RigidBody(I, m, cm, init_position=[-.05,0,.05], init_velocity=v0, init_angularv=[0,0,0], init_rotation=[np.sqrt(.5), 0, np.sqrt(.5), 0])
@@ -63,6 +63,7 @@ if __name__ == '__main__':
 		# VectorActor(satellite_l, "zaxis", "Resources/arrow->Arrow"),
 		VectorActor(satellite_l, "angularv", "Resources/arrow->Arrow"),
 		VectorActor(satellite_c, "angularv", "Resources/arrow->Arrow"),
+		VectorActor(satellite_r, "angularv", "Resources/arrow->Arrow"),
 	], environment, speed=1)
 
 
