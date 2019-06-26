@@ -118,6 +118,8 @@ class Environment():
 		self.max_t = tf
 
 	def solve_for_constraints(self, positions, rotations, velocitys, angularvs, I_inv_rots, forces, torkes):
+		if len(self.constraints) == 0:	return [np.zeros(6) for body in self.bodies]
+		
 		if velocitys is 0:	velocitys = [np.zeros(3)]*len(self.bodies)
 		if angularvs is 0:	angularvs = [np.zeros(3)]*len(self.bodies)
 

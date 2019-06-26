@@ -275,7 +275,7 @@ class ParallelConstraint(Constraint):
 		return np.vstack((force_a_response, torke_a_response, force_b_response, torke_b_response))
 
 
-class HingeJointConstraint(Constraint):
+class HingeConstraint(Constraint):
 	""" Restricts two line segments on two RigidBodies to be fixed relative to each other. """
 	def __init__(self, body_a, body_b, point_a, point_b, axis_a, axis_b):
 		""" body_a:		RigidBody		the first body of the joint
@@ -286,11 +286,24 @@ class HingeJointConstraint(Constraint):
 			axis_b:		3 float vector	the direction of the hinge in the second body's coordinate frame
 		"""
 		super().__init__(body_a, body_b)
-		self.sub_constraint_α = BallJointConstraint(body_a, body_b, np.array(point_a)+axis_a, np.array(point_b)+axis_b)
-		self.sub_constraint_β = BallJointConstraint(body_a, body_b, np.array(point_a)-axis_a, np.array(point_b)-axis_b)
+		self.sub_constraint_α = BallJointConstraint(body_a, body_b, np.array(point_a), np.array(point_b))
+		self.sub_constraint_β = ParallelConstraint(body_a, body_b, axis_a, axis_b)
+		self.num_dof = 5
 
-	def force_and_torke_on_a(self, pos_a, rot_a, vel_a, omg_a, pos_b, rot_b, vel_b, omg_b):
-		self.sub_constraint_β.frc_and_trq_on_a(pos_a, rot_a, vel_a, omg_a, pos_b, rot_b, vel_b, omg_b) # TODO: incorporate both
+	def constraint_values(self, *args):
+		return np.concatenate((self.sub_constraint_α.constraint_values(*args), self.sub_constraint_β.constraint_values(*args)))
+
+	def constraint_derivative(self, *args):
+		return np.concatenate((self.sub_constraint_α.constraint_derivative(*args), self.sub_constraint_β.constraint_derivative(*args)))
+
+	def constraint_jacobian(self, *args):
+		return np.vstack((self.sub_constraint_α.constraint_jacobian(*args), self.sub_constraint_β.constraint_jacobian(*args)))
+
+	def constraint_derivative_jacobian(self, *args):
+		return np.vstack((self.sub_constraint_α.constraint_derivative_jacobian(*args), self.sub_constraint_β.constraint_derivative_jacobian(*args)))
+
+	def force_response(self, *args):
+		return np.hstack((self.sub_constraint_α.force_response(*args), self.sub_constraint_β.force_response(*args)))
 
 
 def cross_matrix(v):
