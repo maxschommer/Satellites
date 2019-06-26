@@ -131,7 +131,7 @@ class Constraint(object):
 			vector)
 
 
-class BallJointConstraint(Constraint):
+class BallJoint(Constraint):
 	""" Restricts two points on two RigidBodies to be fixed relative to each other. """
 	def __init__(self, body_a, body_b, point_a, point_b):
 		""" body_a:		RigidBody		the first body of the joint
@@ -188,7 +188,7 @@ class BallJointConstraint(Constraint):
 		return np.vstack((force_a_response, torke_a_response, force_b_response, torke_b_response))
 
 
-class ParallelConstraint(Constraint):
+class Parallel(Constraint):
 	""" Restricts two points on two RigidBodies to have a particular axis always parallel. """
 	def __init__(self, body_a, body_b, axis_a, axis_b):
 		""" body_a:		RigidBody		the first body of the joint
@@ -275,7 +275,7 @@ class ParallelConstraint(Constraint):
 		return np.vstack((force_a_response, torke_a_response, force_b_response, torke_b_response))
 
 
-class HingeConstraint(Constraint):
+class Hinge(Constraint):
 	""" Restricts two line segments on two RigidBodies to be fixed relative to each other. """
 	def __init__(self, body_a, body_b, point_a, point_b, axis_a, axis_b):
 		""" body_a:		RigidBody		the first body of the joint
@@ -286,8 +286,8 @@ class HingeConstraint(Constraint):
 			axis_b:		3 float vector	the direction of the hinge in the second body's coordinate frame
 		"""
 		super().__init__(body_a, body_b)
-		self.sub_constraint_α = BallJointConstraint(body_a, body_b, np.array(point_a), np.array(point_b))
-		self.sub_constraint_β = ParallelConstraint(body_a, body_b, axis_a, axis_b)
+		self.sub_constraint_α = BallJoint(body_a, body_b, np.array(point_a), np.array(point_b))
+		self.sub_constraint_β = Parallel(body_a, body_b, axis_a, axis_b)
 		self.num_dof = 5
 
 	def constraint_values(self, *args):

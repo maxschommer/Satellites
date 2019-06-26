@@ -6,7 +6,7 @@ from pyquaternion import Quaternion
 import constraint
 
 
-CONSTRAINT_RECOVERY_TIME = .01 # making this smaller increases the precision with which the constraints are met, but increases the computation time
+CONSTRAINT_RECOVERY_TIME = .1 # making this smaller increases the precision with which the constraints are met, but increases the computation time
 
 
 class RigidBody():
@@ -15,7 +15,6 @@ class RigidBody():
 		""" I:		      3x3 float array		rotational inertia
 			m:		  	  float				    mass
 			cm_position:  3 float vector		centre of mass in the mesh coordinate frame
-			body_num:     int 					Index of body in solver array
 		"""
 		self.I = I
 		self.I_inv = np.linalg.inv(I)
@@ -119,7 +118,7 @@ class Environment():
 
 	def solve_for_constraints(self, positions, rotations, velocitys, angularvs, I_inv_rots, forces, torkes):
 		if len(self.constraints) == 0:	return [np.zeros(6) for body in self.bodies]
-		
+
 		if velocitys is 0:	velocitys = [np.zeros(3)]*len(self.bodies)
 		if angularvs is 0:	angularvs = [np.zeros(3)]*len(self.bodies)
 
@@ -164,51 +163,3 @@ class Environment():
 			f = f[constraint.num_dof:]
 
 		return reaction_forces_torkes
-
-
-class Impulsor():
-	""" An entity that imparts linear and/or angular momentum to the system. """
-	def __init__(self):
-		pass
-
-	def force_on(self, body, time, position, rotation, velocity, angularv):
-		""" Compute the force applied by this Impulsor on the given body, given the time and that body's state.
-			body:		RigidBody	the body on which this might be acting
-			time:		float		the current time
-			position:	3 vector	the current position of body
-			rotation:	Quaternion	the current rotation of body
-			velocity:	3 vector	the current linear velocity of body
-			angularv:	3 vector	the current angular velocity of body
-			return		3 vector	the applied force on body
-		"""
-		return np.zeros(3)
-
-	def torke_on(self, body, time, position, rotation, velocity, angularv):
-		""" Compute the force applied by this Impulsor on the given body, given the time and that body's state.
-			body:		RigidBody	the body on which this might be acting
-			time:		float		the current time
-			position:	3 vector	the current position of body
-			rotation:	Quaternion	the current rotation of body
-			velocity:	3 vector	the current linear velocity of body
-			angularv:	3 vector	the current angular velocity of body
-			return		3 vector	the applied torke on body
-		"""
-		return np.zeros(3)
-
-
-class MagneticDipole(Impulsor):
-	""" External torke imparted by a uniform magnetic field on a magnetic body. """
-	def __init__(self, body, dipole_moment, external_field):
-		""" body:	RigidBody	the body on which the torke is applied
-			dipole_moment:	3 vector	the magnetic dipole moment of the body in its reference frame
-			external_field:	3 vector	the magnetic flux density of the environment
-		"""
-		self.body = body
-		self.moment = dipole_moment
-		self.field = external_field
-
-	def torke_on(self, body, time, position, rotation, velocity, angularv):
-		if body is self.body:
-			return np.cross(rotation.rotate(self.moment), self.field)
-		else:
-			return np.zeros(3)

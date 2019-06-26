@@ -5,8 +5,9 @@ import pyglet
 from pyglet.window import key
 import ratcave as rc
 
-from constraint import HingeConstraint
-from physics import RigidBody, Environment, MagneticDipole
+from constraint import Hinge
+from locomotion import MagneticDipole, Thruster
+from physics import Environment, RigidBody
 from rendering import BodyActor, VectorActor, Stage
 
 
@@ -20,12 +21,12 @@ B_earth = np.array([0, 35e-6, 0]) # T
 
 if __name__ == '__main__':
 
-	# I = [[9.759e-5,  -4.039e-6, -1.060e-7],
-	# 	 [-4.039e-6,  7.858e-5,  7.820e-9],
-	# 	 [ -1.060e-7, 7.820e-9,  1.743e-4]] # kg*m^2
-	I = [[1e-5,0,0],
-		 [0,1e-5,0],
-		 [0,0,1e-5]]
+	I = [[9.759e-5,  -4.039e-6, -1.060e-7],
+		 [-4.039e-6,  7.858e-5,  7.820e-9],
+		 [ -1.060e-7, 7.820e-9,  1.743e-4]] # kg*m^2
+	# I = [[1e-5,0,0],
+	# 	 [0,1e-5,0],
+	# 	 [0,0,1e-5]]
 	m = 0.05223934 # kg
 	cm = [0.00215328, -0.00860001, -0.00038142] # m --> check coordinates
 	# cm = [0,0,0]
@@ -45,13 +46,15 @@ if __name__ == '__main__':
 				satellite_r,
 			],
 			constraints=[
-				HingeConstraint(satellite_l, satellite_c, [.05,0,-.005], [-.05,0,-.005], [0,1,0], [0,1,0]),
-				HingeConstraint(satellite_c, satellite_r, [.05,0, .005], [-.05,0, .005], [0,1,0], [0,1,0]),
+				# Hinge(satellite_l, satellite_c, [.05,0,-.005], [-.05,0,-.005], [0,1,0], [0,1,0]),
+				# Hinge(satellite_c, satellite_r, [.05,0, .005], [-.05,0, .005], [0,1,0], [0,1,0]),
 			],
 			external_impulsors=[
-				MagneticDipole(satellite_l, dipole_moment, B_earth),
+				# MagneticDipole(satellite_l, dipole_moment, B_earth),
+				Thruster(satellite_r, [ .05,.05,0], [-1, 0, 0], lambda t: .002 if int(t)%3==0 else 0),
+				Thruster(satellite_r, [-.05,.05,0], [ 1, 0, 0], lambda t: .002 if int(t)%3==1 else 0),
 			])
-	environment.solve(0, 20)
+	environment.solve(0, 30)
 
 	stage = Stage([
 		BodyActor(satellite_l, "ThinSatFrame->Frame"),
