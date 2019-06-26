@@ -1,2 +1,2 @@
 # Satellites
-Scripts, optimizations and simulations for ThinSats Bill, Burt and Joe
+Scripts, optimizations and simulations for ThinSats Cosmic DC, Lt. Surge, and Fallout Boy
