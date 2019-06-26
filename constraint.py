@@ -76,9 +76,60 @@ class Constraint(object):
 			vel_a	3 vector	the current linear velocity of body_a
 			omg_a	3 vector	the current angular velocity of body_a
 			..._b	Do I need to specify the rest?
-			return	nx14 matrix	the matrix that converts the force vector to the staet second derivative contribution
+			return	nx12 matrix	the matrix that converts the constrainting parameter vector to the force-torque vectors
 		"""
 		raise NotImplementedError("Subclasses should override.")
+
+	def response(self,
+			position_a, rotation_a, velocity_a, angularv_a,
+			position_b, rotation_b, velocity_b, angularv_b, I_inv_rot_a=None, I_inv_rot_b=None):
+		""" Compute the second derivative response matrix.
+			pos_a	3 vector	the current position of body_a
+			rot_a	Quaternion	the current orientation of body_a
+			vel_a	3 vector	the current linear velocity of body_a
+			omg_a	3 vector	the current angular velocity of body_a
+			..._b	Do I need to specify the rest?
+			return	nx14 matrix	the matrix that converts the constraining parameter vector to the state second derivative contribution
+		"""
+		force_torke_response = self.force_response(position_a, rotation_a, velocity_a, angularv_a, position_b, rotation_b, velocity_b, angularv_b)
+		pos_a_response = force_torke_response[0:3,:]/self.body_a.m
+		pos_b_response = force_torke_response[6:9,:]/self.body_b.m
+		quaternion_matrix_a = 1/2*np.array([list(BASIS_QUATERNIONS[i]*rotation_a) for i in range(3)]).transpose()
+		quaternion_matrix_b = 1/2*np.array([list(BASIS_QUATERNIONS[i]*rotation_b) for i in range(3)]).transpose()
+		rot_a_response = np.matmul(quaternion_matrix_a, np.matmul(I_inv_rot_a, force_torke_response[3:6,:]))
+		rot_b_response = np.matmul(quaternion_matrix_b, np.matmul(I_inv_rot_b, force_torke_response[9:12,:]))
+		return np.vstack((pos_a_response, rot_a_response, pos_b_response, rot_b_response))
+
+	def force_torke_on_a(self, vector,
+			position_a, rotation_a, velocity_a, angularv_a,
+			position_b, rotation_b, velocity_b, angularv_b):
+		""" Compute the force-torque vector on body_a.
+			pos_a	3 vector	the current position of body_a
+			rot_a	Quaternion	the current orientation of body_a
+			vel_a	3 vector	the current linear velocity of body_a
+			omg_a	3 vector	the current angular velocity of body_a
+			..._b	Do I need to specify the rest?
+			return  nx14 matrix the matrix that converts the f
+		"""
+		return np.matmul(
+			self.force_response(position_a, rotation_a, velocity_a, angularv_a, position_b, rotation_b, velocity_b, angularv_b)[0:6,:],
+			vector)
+
+	def force_torke_on_b(self, vector,
+			position_a, rotation_a, velocity_a, angularv_a,
+			position_b, rotation_b, velocity_b, angularv_b):
+		""" Compute the force-torque vector on body_b.
+			pos_a	3 vector	the current position of body_a
+			rot_a	Quaternion	the current orientation of body_a
+			vel_a	3 vector	the current linear velocity of body_a
+			omg_a	3 vector	the current angular velocity of body_a
+			..._b	Do I need to specify the rest?
+			return  nx14 matrix the matrix that converts the f
+		"""
+		return np.matmul(
+			self.force_response(position_a, rotation_a, velocity_a, angularv_a, position_b, rotation_b, velocity_b, angularv_b)[6:12,:],
+			vector)
+
 
 
 
@@ -132,28 +183,11 @@ class BallJointConstraint(Constraint):
 	def force_response(self,
 			position_a, rotation_a, velocity_a, angularv_a,
 			position_b, rotation_b, velocity_b, angularv_b):
-		pos_a_response = np.identity(3)/self.body_a.m
-		pos_b_response = -np.identity(3)/self.body_b.m
-		rot_a_response = np.zeros((4, 3))
-		rot_b_response = np.zeros((4, 3))
-		for i in range(3):
-			I_inv_rot_a = np.matmul(np.matmul(rotation_a.rotation_matrix,self.body_a.I_inv),rotation_a.rotation_matrix.transpose())
-			I_inv_rot_b = np.matmul(np.matmul(rotation_b.rotation_matrix,self.body_b.I_inv),rotation_b.rotation_matrix.transpose())
-			rot_a_response[:,i] = list(
-				1/2*Quaternion(vector=np.matmul(I_inv_rot_a, np.cross(rotation_a.rotate(self.point_a), BASIS_VECTORS[i])))*rotation_a)
-			rot_b_response[:,i] = list(
-				-1/2*Quaternion(vector=np.matmul(I_inv_rot_b, np.cross(rotation_b.rotate(self.point_b), BASIS_VECTORS[i])))*rotation_b)
-		return np.vstack((pos_a_response, rot_a_response, pos_b_response, rot_b_response))
-
-	def force_torke_on_a(self, vector,
-			position_a, rotation_a, velocity_a, angularv_a,
-			position_b, rotation_b, velocity_b, angularv_b):
-		return np.concatenate((vector, np.cross(rotation_a.rotate(self.point_a), vector)))
-
-	def force_torke_on_b(self, vector,
-			position_a, rotation_a, velocity_a, angularv_a,
-			position_b, rotation_b, velocity_b, angularv_b):
-		return np.concatenate((-vector, np.cross(rotation_b.rotate(self.point_b), -vector)))
+		force_a_response = np.identity(3)
+		force_b_response = -np.identity(3)
+		torke_a_response = cross_matrix(rotation_a.rotate(self.point_a))
+		torke_b_response = -cross_matrix(rotation_b.rotate(self.point_b))
+		return np.vstack((force_a_response, torke_a_response, force_b_response, torke_b_response))
 
 
 class HingeJointConstraint(Constraint):
@@ -172,3 +206,11 @@ class HingeJointConstraint(Constraint):
 
 	def force_and_torke_on_a(self, pos_a, rot_a, vel_a, omg_a, pos_b, rot_b, vel_b, omg_b):
 		self.sub_constraint_β.frc_and_trq_on_a(pos_a, rot_a, vel_a, omg_a, pos_b, rot_b, vel_b, omg_b) # TODO: incorporate both
+
+
+def cross_matrix(v):
+	""" Returns this vector cross product as a matrix multiplication. """
+	return np.array([
+		[    0, -v[2],  v[1]],
+		[ v[2],     0, -v[0]],
+		[-v[1],  v[0],     0]])

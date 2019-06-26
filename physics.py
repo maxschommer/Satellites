@@ -117,14 +117,14 @@ class Environment():
 		self.solution = solve_ivp(solvation, [t0, tf], initial_state, dense_output=True)
 		self.max_t = tf
 
-	def solve_for_constraints(self, positions, rotations, velocitys, angularvs, I_invs, forces, torkes):
+	def solve_for_constraints(self, positions, rotations, velocitys, angularvs, I_inv_rots, forces, torkes):
 		if velocitys is 0:	velocitys = [np.zeros(3)]*len(self.bodies)
 		if angularvs is 0:	angularvs = [np.zeros(3)]*len(self.bodies)
 
 		y_dot = np.zeros((7*len(self.bodies))) # now, go through the bodies and get each's part of
 		y_ddot = np.zeros((7*len(self.bodies))) # the positional components of the state and its derivatives
 		for i, body in enumerate(self.bodies):
-			xlration, angulara = forces[i]/body.m, np.matmul(I_invs[i], torkes[i]) # TODO: THIS DOES NOT ACCOUNT FOR THE TUMBLING TERM YET
+			xlration, angulara = forces[i]/body.m, np.matmul(I_inv_rots[i], torkes[i]) # TODO: THIS DOES NOT ACCOUNT FOR THE TUMBLING TERM YET
 
 			angularv_q = 1/2*Quaternion(vector=angularvs[i])*rotations[i] # put these vectors in quaternion form
 			angulara_q = 1/2*(Quaternion(vector=angulara) - np.dot(angularvs[i],angularvs[i])/2)*rotations[i]
@@ -143,14 +143,14 @@ class Environment():
 			prvω_b = positions[i_b], rotations[i_b], velocitys[i_b], angularvs[i_b]
 			J_c_j = constraint.constraint_jacobian(*prvω_a, *prvω_b)
 			J_c_dot_j = constraint.constraint_derivative_jacobian(*prvω_a, *prvω_b)
-			R_j = constraint.force_response(*prvω_a, *prvω_b)
+			R_j = constraint.response(*prvω_a, *prvω_b, I_inv_rot_a=I_inv_rots[i_a], I_inv_rot_b=I_inv_rots[i_b])
 			for k, i in [(0, i_a), (1, i_b)]:
 				J_c[j:j+constraint.num_dof, 7*i:7*i+7] = J_c_j[:, 7*k:7*k+7]
 				J_c_dot[j:j+constraint.num_dof, 7*i:7*i+7] = J_c_dot_j[:, 7*k:7*k+7]
 				R[7*i:7*i+7, j:j+constraint.num_dof] = R_j[7*k:7*k+7, :]
 			j += constraint.num_dof
 
-		f = - np.matmul(np.linalg.pinv(np.matmul(J_c, R)), np.matmul(J_c, y_ddot) + np.matmul(J_c_dot, y_dot)) # solve for the constraints!
+		f = - np.matmul(np.linalg.inv(np.matmul(J_c, R)), np.matmul(J_c, y_ddot) + np.matmul(J_c_dot, y_dot)) # solve for the constraints!
 
 		reaction_forces_torkes = [np.zeros(6) for body in self.bodies]
 		for constraint in self.constraints: # apply the constraints
