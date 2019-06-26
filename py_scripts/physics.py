@@ -69,7 +69,7 @@ class Environment():
 		self.solar_flux = np.array(solar_flux) #		       we'll want to read time tables for these
 		self.air_velocity = np.array(air_velocity)
 		self.air_density = air_density
-		
+
 		self.solution = None
 		self.max_t = None
 
