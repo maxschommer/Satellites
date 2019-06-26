@@ -101,18 +101,21 @@ class Stage():
 		self.environment = environment
 		self.speed = speed
 		self.t = 0
-		self.update(0)
+		self.started = False
 
 	def update(self, dt):
 		""" Move all Actors into updated positions.
 			dt:	float	the number of seconds of realtime that have proressed
 		"""
-		self.t = self.t + self.speed*dt
-		if self.t > self.environment.max_t:
-			return
+		if dt and not self.started: # ignore the first call to update
+			self.started = True # because that's when pyglet tries to skip past the first 3 seconds
+		else:
+			self.t = self.t + self.speed*dt
+			if self.t > self.environment.max_t:
+				return
 
-		for a in self.actors:
-			a.update(self.t)
+			for a in self.actors:
+				a.update(self.t)
 
 
 
