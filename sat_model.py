@@ -6,10 +6,11 @@ from pyglet.window import key
 import ratcave as rc
 
 from constraint import Hinge
-from locomotion import MagneticDipole, Thruster
+from control import Magnetostabilisation
+from locomotion import MagneticDipole, Magnetorker, Thruster, GimballedThruster
 from physics import Environment, RigidBody
 from rendering import BodyActor, VectorActor, Stage
-from sensor import Photodiode
+from sensor import Photodiode, Magnetometer
 
 
 
@@ -37,6 +38,7 @@ if __name__ == '__main__':
 	satellite_l = RigidBody(I, m, cm, init_position=[-.05,0,.05], init_velocity=v0, init_angularv=[0,0,0], init_rotation=[np.sqrt(.5), 0, np.sqrt(.5), 0])
 	satellite_c = RigidBody(I, m, cm, init_position=[0,0,0], init_velocity=v0, init_angularv=ω0)
 	satellite_r = RigidBody(I, m, cm, init_position=[.1,0,0], init_velocity=v0, init_angularv=ω0)
+	magnetometer = Magnetometer(satellite_l)
 
 	environment = Environment(
 		bodies=[
@@ -49,17 +51,18 @@ if __name__ == '__main__':
 			# Hinge(satellite_c, satellite_r, [.05,0, .005], [-.05,0, .005], [0,1,0], [0,1,0]),
 		],
 		sensors=[
-			Photodiode(satellite_l, [0,0,1]),
+			# Photodiode(satellite_l, [0,0,1]),
+			magnetometer,
 		],
 		external_impulsors=[
-			MagneticDipole(satellite_l, [0, 0, 1]),
-			Thruster(satellite_r, [ .05,.05,0], [-1, 0, 0], lambda t: .002 if int(t)%3==0 else 0),
-			Thruster(satellite_r, [-.05,.05,0], [ 1, 0, 0], lambda t: .002 if int(t)%3==1 else 0),
+			Magnetorker(satellite_l, Magnetostabilisation(magnetometer, [0, 0, 1])),
+			Thruster(satellite_r, [ .05,.05,0], [-1, 0, 0], lambda t: .004 if int(t)%3==0 else 0),
+			Thruster(satellite_r, [-.05,.05,0], [ 1, 0, 0], lambda t: .004 if int(t)%3==1 else 0),
 		],
 		magnetic_field=[0, 0, 35e-6], # T
 		solar_flux=[0, -1.361, 0], # W/m^2
 	)
-	environment.solve(0, 10)
+	environment.solve(0, 20)
 
 	for sen in environment.sensors:
 		plt.plot(environment.solution.t, sen.all_readings(environment.solution.y.transpose()))

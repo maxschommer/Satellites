@@ -8,9 +8,11 @@ class Sensor:
 		self.environment = None
 
 	def sense(self, positions, rotations, velocitys, angularvs):
+		""" Store the current reading. """
 		self.last_value = self.reading(positions, rotations, velocitys, angularvs)
 
 	def all_readings(self, states):
+		""" Get readings in bulk and output them in a list. """
 		readings = []
 		for state in states:
 			positions, rotations, velocitys, angularvs = [], [], [], []
@@ -27,6 +29,7 @@ class Sensor:
 
 
 	def reading(self, positions, rotations, velocitys, angularvs):
+		""" Get the current value seen by the sensor. """
 		raise NotImplementedError("Subclasses should override.")
 
 
@@ -44,3 +47,17 @@ class Photodiode(Sensor):
 			return np.linalg.norm(self.environment.solar_flux)
 		else:
 			return 0
+
+
+class Magnetometer(Sensor):
+	""" A sensor that just gets the magnetic field in it's body's reference frame, as well as the first derivative. """
+	def __init__(self, body):
+		""" body:		RigidBody	the body to which this is mounted
+			direction:	3 vector	the direction this diode faces (it cannot detect light coming from any other direction)
+		"""
+		self.body = body
+
+	def reading(self, positions, rotations, velocitys, angularvs):
+		B_rot = rotations[self.body.body_num].inverse.rotate(self.environment.magnetic_field)
+		B_dot_rot = -np.cross(rotations[self.body.body_num].inverse.rotate(angularvs[self.body.body_num]), B_rot)
+		return np.concatenate((B_rot, B_dot_rot))

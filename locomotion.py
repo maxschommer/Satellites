@@ -32,22 +32,18 @@ class Impulsor():
 
 
 class Magnetorker(Impulsor):
-	""" External torke imparted by a uniform magnetic field on a variable-magnitude dipole. """
-	def __init__(self, body, direction, magnitude):
-		""" body:			RigidBody			the body on which this is mounted
-			direction:		3 vector			the direction of the magnetic moment this produces
-			magnitude:		(float) -> float	the magnitude of the magnetic moment at a given time
-			external_field:	3 vector			the value of the ambient magnetic flux density
+	""" External torke imparted by a uniform magnetic field on a 3-axis variable-magnitude dipole. """
+	def __init__(self, body, moment):
+		""" body:		RigidBody			the body on which this is mounted
+			moment:		(float) -> float	the magnetic dipole moment vector at a given time
 		"""
 		self.body = body
-		self.direction = np.array(direction)/np.linalg.norm(direction)
-		self.magnitude = magnitude
+		self.moment = moment
 
 	def torke_on(self, body, time, position, rotation, velocity, angularv):
 		if body is self.body:
 			return np.cross(
-				rotation.rotate(self.direction)*self.magnitude(time),
-				self.environment.magnetic_field)
+				rotation.rotate(self.moment(time)), self.environment.magnetic_field)
 		else:
 			return np.zeros(3)
 
@@ -58,10 +54,8 @@ class MagneticDipole(Magnetorker):
 		""" body:			RigidBody	the body on which the torke is applied
 			dipole_moment:	3 vector	the magnetic dipole moment of the body in its reference frame
 		"""
-		self.dipole_moment = np.array(dipole_moment)
-		super().__init__(
-			body, self.dipole_moment/np.linalg.norm(self.dipole_moment),
-			lambda t: np.linalg.norm(self.dipole_moment))
+		self.moment = np.array(dipole_moment)
+		super().__init__(body, lambda t: self.moment)
 
 
 class GimballedThruster(Impulsor):
