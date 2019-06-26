@@ -76,7 +76,7 @@ class Constraint(object):
 			vel_a	3 vector	the current linear velocity of body_a
 			omg_a	3 vector	the current angular velocity of body_a
 			..._b	Do I need to specify the rest?
-			return	nx12 matrix	the matrix that converts the constrainting parameter vector to the force-torque vectors
+			return	nx12 matrix	the matrix that converts the constrainting parameter vector to the force-torke vectors
 		"""
 		raise NotImplementedError("Subclasses should override.")
 
@@ -103,7 +103,7 @@ class Constraint(object):
 	def force_torke_on_a(self, vector,
 			position_a, rotation_a, velocity_a, angularv_a,
 			position_b, rotation_b, velocity_b, angularv_b):
-		""" Compute the force-torque vector on body_a.
+		""" Compute the force-torke vector on body_a.
 			pos_a	3 vector	the current position of body_a
 			rot_a	Quaternion	the current orientation of body_a
 			vel_a	3 vector	the current linear velocity of body_a
@@ -118,7 +118,7 @@ class Constraint(object):
 	def force_torke_on_b(self, vector,
 			position_a, rotation_a, velocity_a, angularv_a,
 			position_b, rotation_b, velocity_b, angularv_b):
-		""" Compute the force-torque vector on body_b.
+		""" Compute the force-torke vector on body_b.
 			pos_a	3 vector	the current position of body_a
 			rot_a	Quaternion	the current orientation of body_a
 			vel_a	3 vector	the current linear velocity of body_a
@@ -208,7 +208,7 @@ class Parallel(Constraint):
 
 		self.axis_b = np.array(axis_b)/np.linalg.norm(axis_b)
 
-		self.num_dof = 2 # axis_1 torque, axis_2 torque
+		self.num_dof = 2 # axis_1 torke, axis_2 torke
 
 	def constraint_values(self,
 			position_a, rotation_a, velocity_a, angularv_a,
