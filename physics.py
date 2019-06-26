@@ -46,17 +46,27 @@ class RigidBody():
 
 class Environment():
 	""" A collection of bodies, constraints, and external forces that manages them all together. """
-	def __init__(self, bodies, constraints=[], external_impulsors=[]):
+	def __init__(self, bodies, constraints=[], sensors=[], external_impulsors=[],
+			magnetic_field=[0,0,0], solar_flux=[0,0,0], air_velocity=[0,0,0], air_density=0):
 		""" bodies:				[RigidBody]		the list of bodies in the Universe
 			constraints:		[Constraint]	the list of constraints between bodies to keep satisfied
+			sensors:			[Sensor]		the list of sensors that are entitled to certain information
 			external_impulsors:	[Impulsor]		the list of environmental factors that interact with the system
 		"""
 		self.bodies = bodies
-		self.constraints = constraints
-		self.external_impulsors = external_impulsors
 		for i, body in enumerate(bodies):
 			body.body_num = i
 			body.environment = self
+		self.constraints = constraints
+		self.sensors = sensors
+		for sen in sensors:
+			sen.environment = self
+		self.external_impulsors = external_impulsors
+		for imp in external_impulsors:
+			imp.environment = self
+
+		self.magnetic_field = np.array(magnetic_field) # TODO: at some point, when GMAT integration becomes a thing,
+		self.solar_flux = np.array(solar_flux) #		       we'll want to read time tables for these
 		self.solution = None
 		self.max_t = None
 
@@ -82,7 +92,6 @@ class Environment():
 		def solvation(t, state):
 			positions, rotations, velocitys, angularvs = [], [], [], []
 			momentums, angularms, I_inv_rots = [], [], []
-			forces, torkes = [], []
 			state_dot = [] # as well as the derivative of state, usable by the ODE solver
 			for i, body in enumerate(self.bodies): # first unpack the state vector
 				positions.append(state[13*i:13*i+3])
@@ -92,9 +101,15 @@ class Environment():
 				I_inv_rots.append(np.matmul(np.matmul(rotations[i].rotation_matrix,body.I_inv),rotations[i].rotation_matrix.transpose()))
 				velocitys.append(momentums[i]/body.m)
 				angularvs.append(np.matmul(I_inv_rots[i], angularms[i])) # make sure to use the correct ref frame when multiplying by I^-1
+
+			for sen in self.sensors: # feed those results to all sensors
+				sen.sense(positions, rotations, velocitys, angularvs)
+
+			forces, torkes = [], []
+			for i, body in enumerate(self.bodies): # then resolve the effects of external forces and torkes
 				forces.append(np.zeros(3))
 				torkes.append(np.zeros(3))
-				for imp in self.external_impulsors: # incorporate external forces and moments
+				for imp in self.external_impulsors:
 					forces[i] += imp.force_on(body, t, positions[i], rotations[i], velocitys[i], angularvs[i])
 					torkes[i] += imp.torke_on(body, t, positions[i], rotations[i], velocitys[i], angularvs[i])
 				state_dot.extend([*velocitys[i], *(Quaternion(vector=angularvs[i])*rotations[i]/2), *forces[i], *torkes[i]]) # build the vector to return

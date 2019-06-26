@@ -4,7 +4,7 @@ import numpy as np
 class Impulsor():
 	""" An entity that imparts linear and/or angular momentum to the system. """
 	def __init__(self):
-		pass
+		self.environment = None
 
 	def force_on(self, body, time, position, rotation, velocity, angularv):
 		""" Compute the force applied by this Impulsor on the given body, given the time and that body's state.
@@ -33,7 +33,7 @@ class Impulsor():
 
 class Magnetorker(Impulsor):
 	""" External torke imparted by a uniform magnetic field on a variable-magnitude dipole. """
-	def __init__(self, body, direction, magnitude, external_field=[0, 35e-6, 0]):
+	def __init__(self, body, direction, magnitude):
 		""" body:			RigidBody			the body on which this is mounted
 			direction:		3 vector			the direction of the magnetic moment this produces
 			magnitude:		(float) -> float	the magnitude of the magnetic moment at a given time
@@ -42,26 +42,26 @@ class Magnetorker(Impulsor):
 		self.body = body
 		self.direction = np.array(direction)/np.linalg.norm(direction)
 		self.magnitude = magnitude
-		self.field = np.array(external_field)
 
 	def torke_on(self, body, time, position, rotation, velocity, angularv):
 		if body is self.body:
-			return np.cross(rotation.rotate(self.direction)*self.magnitude(time), self.field)
+			return np.cross(
+				rotation.rotate(self.direction)*self.magnitude(time),
+				self.environment.magnetic_field)
 		else:
 			return np.zeros(3)
 
 
 class MagneticDipole(Magnetorker):
 	""" External torke imparted by a uniform magnetic field on a magnetic body. """
-	def __init__(self, body, dipole_moment, external_field):
+	def __init__(self, body, dipole_moment):
 		""" body:			RigidBody	the body on which the torke is applied
 			dipole_moment:	3 vector	the magnetic dipole moment of the body in its reference frame
-			external_field:	3 vector	the magnetic flux density of the environment
 		"""
 		self.dipole_moment = np.array(dipole_moment)
 		super().__init__(
 			body, self.dipole_moment/np.linalg.norm(self.dipole_moment),
-			lambda t: np.linalg.norm(self.dipole_moment), external_field)
+			lambda t: np.linalg.norm(self.dipole_moment))
 
 
 class GimballedThruster(Impulsor):
