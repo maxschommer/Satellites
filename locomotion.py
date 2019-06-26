@@ -92,3 +92,28 @@ class Thruster(GimballedThruster):
 		"""
 		self.direction = np.array(direction, dtype=float)/np.linalg.norm(direction)
 		super().__init__(body, lever_arm, lambda t: self.direction*magnitude(t))
+
+
+class Drag(Impulsor):
+	""" External force and torke imparted by collision with the atmosphere. """
+	def __init__(self, body, area, cp_position):
+		""" body:			RigidBody	the body experiencing the drag
+			lever_arm:		3 vector	the thruster's position on the body
+			area:			float		the effective area of the body with the drag coefficient multiplied in
+			cp_position:	3 vector	the position of the centre of pressure in the body frame
+		""" # TODO: account for orientation-dependent cD and cP
+		self.body = body
+		self.area = area
+		self.cp_position = cp_position - body.cm_position
+
+	def force_on(self, body, time, position, rotation, velocity, angularv):
+		if body is self.body:
+			return 1/2*self.area*self.environment.air_density*np.linalg.norm(self.environment.air_velocity)*self.environment.air_velocity
+		else:
+			return np.zeros(3)
+
+	def torke_on(self, body, time, position, rotation, velocity, angularv):
+		if body is self.body:
+			return np.cross(self.cp_position, self.force_on(body, time, position, rotation, velocity, angularv))
+		else:
+			return np.zeros(3)

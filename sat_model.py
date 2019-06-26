@@ -7,7 +7,7 @@ import ratcave as rc
 
 from constraint import Hinge
 from control import Magnetostabilisation
-from locomotion import MagneticDipole, Magnetorker, Thruster, GimballedThruster
+from locomotion import MagneticDipole, Magnetorker, Thruster, GimballedThruster, Drag
 from physics import Environment, RigidBody
 from rendering import BodyActor, VectorActor, Stage
 from sensor import Photodiode, Magnetometer
@@ -58,9 +58,12 @@ if __name__ == '__main__':
 			Magnetorker(satellite_l, Magnetostabilisation(magnetometer, [0, 0, 1])),
 			Thruster(satellite_r, [ .05,.05,0], [-1, 0, 0], lambda t: .004 if int(t)%3==0 else 0),
 			Thruster(satellite_r, [-.05,.05,0], [ 1, 0, 0], lambda t: .004 if int(t)%3==1 else 0),
+			Drag(satellite_c, .001, [0,0,0])
 		],
 		magnetic_field=[0, 0, 35e-6], # T
 		solar_flux=[0, -1.361, 0], # W/m^2
+		air_velocity=[-7.8e3, 0, 0], # m/s
+		air_density=1e-14, # kg/m^3
 	)
 	environment.solve(0, 20)
 
