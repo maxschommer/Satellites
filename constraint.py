@@ -131,8 +131,6 @@ class Constraint(object):
 			vector)
 
 
-
-
 class BallJointConstraint(Constraint):
 	""" Restricts two points on two RigidBodies to be fixed relative to each other. """
 	def __init__(self, body_a, body_b, point_a, point_b):
@@ -187,6 +185,93 @@ class BallJointConstraint(Constraint):
 		force_b_response = -np.identity(3)
 		torke_a_response = cross_matrix(rotation_a.rotate(self.point_a))
 		torke_b_response = -cross_matrix(rotation_b.rotate(self.point_b))
+		return np.vstack((force_a_response, torke_a_response, force_b_response, torke_b_response))
+
+
+class ParallelConstraint(Constraint):
+	""" Restricts two points on two RigidBodies to have a particular axis always parallel. """
+	def __init__(self, body_a, body_b, axis_a, axis_b):
+		""" body_a:		RigidBody		the first body of the joint
+			body_b: 	RigidBody		the second body of the joint
+			axis_a:		3 float vector	the hinge axis in the first body's coordinate frame
+			axis_b:		3 float vector	the hinge axis in the second body's coordinate frame
+		"""
+		super().__init__(body_a, body_b)
+		axis_a = np.array(axis_a)/np.linalg.norm(axis_a) # normalise the primary axis
+		if axis_a[1] != 0 or axis_a[2] != 0:
+			self.axis_a1 = np.cross(axis_a, [1,0,0]) # pick an orthogonal secondary axis
+		else:
+			self.axis_a1 = np.cross(axis_a, [0,1,0])
+		self.axis_a1 /= np.linalg.norm(self.axis_a1)
+		assert np.dot(axis_a, self.axis_a1) == 0
+		self.axis_a2 = np.cross(axis_a, self.axis_a1) # and define a second secondary axis based on that
+
+		self.axis_b = np.array(axis_b)/np.linalg.norm(axis_b)
+
+		self.num_dof = 2 # axis_1 torque, axis_2 torque
+
+	def constraint_values(self,
+			position_a, rotation_a, velocity_a, angularv_a,
+			position_b, rotation_b, velocity_b, angularv_b):
+		return np.array([
+			np.dot(rotation_b.rotate(self.axis_b), rotation_a.rotate(self.axis_a1)),
+			np.dot(rotation_b.rotate(self.axis_b), rotation_a.rotate(self.axis_a1))])
+
+	def constraint_derivative(self,
+			position_a, rotation_a, velocity_a, angularv_a,
+			position_b, rotation_b, velocity_b, angularv_b):
+		axis_a1_r = rotation_a.rotate(self.axis_a1)
+		axis_a2_r = rotation_a.rotate(self.axis_a2)
+		axis_b_r = rotation_b.rotate(self.axis_b)
+		return np.array([
+			np.dot(np.cross(angularv_b, axis_b_r), axis_a1_r) + np.dot(axis_b_r, np.cross(angularv_a, axis_a1_r)),
+			np.dot(np.cross(angularv_b, axis_b_r), axis_a2_r) + np.dot(axis_b_r, np.cross(angularv_a, axis_a2_r))])
+
+	def constraint_jacobian(self,
+			position_a, rotation_a, velocity_a, angularv_a,
+			position_b, rotation_b, velocity_b, angularv_b):
+		rot_b_dependency = np.zeros((3, 4)) # these are the jacobians of qvq* specifically
+		for i in range(3):
+			rot_b_dependency[i,:] = list(2*BASIS_QUATERNIONS[i]*rotation_b*Quaternion(vector=self.axis_b))
+
+		jacob = np.zeros((2, 14))
+		for j, axis_a in enumerate([self.axis_a1, self.axis_a2]):
+			rot_a_dependency = np.zeros((3, 4)) # these are the jacobians of qvq* specifically
+			for i in range(3):
+				rot_a_dependency[i,:] = list(2*BASIS_QUATERNIONS[i]*rotation_a*Quaternion(vector=axis_a))
+			jacob[j,3:7] = np.matmul(rotation_b.rotate(self.axis_b), rot_a_dependency)
+			jacob[j,10:14] = np.matmul(rotation_a.rotate(axis_a), rot_b_dependency)
+
+		return jacob
+
+	def constraint_derivative_jacobian(self,
+			position_a, rotation_a, velocity_a, angularv_a,
+			position_b, rotation_b, velocity_b, angularv_b):
+		rot_b_dependency, rot_b_dot_dependency = np.zeros((3, 4)), np.zeros((3, 4)) # these are the jacobians of qvq* specifically
+		for i in range(3):
+			rot_b_dependency[i,:] = list(2*BASIS_QUATERNIONS[i]*rotation_b*Quaternion(vector=self.axis_b))
+			rot_b_dot_dependency[i,:] = list(2*BASIS_QUATERNIONS[i]*rotation_b*Quaternion(vector=self.axis_b))
+
+		jacob = np.zeros((2, 14))
+		for j, axis_a in enumerate([self.axis_a1, self.axis_a2]):
+			rot_a_dependency, rot_a_dot_dependency = np.zeros((3, 4)), np.zeros((3, 4)) # these are the jacobians of qvq* specifically
+			for i in range(3):
+				rot_a_dependency[i,:] = list(2*BASIS_QUATERNIONS[i]*rotation_a*Quaternion(vector=axis_a))
+				rot_a_dot_dependency[i,:] = list(2*BASIS_QUATERNIONS[i]*rotation_a*Quaternion(vector=axis_a))
+			jacob[j,3:7] = np.matmul(rotation_b.rotate(self.axis_b), rot_a_dot_dependency) +\
+				np.matmul(np.cross(angularv_b, rotation_b.rotate(self.axis_b)), rot_a_dependency)
+			jacob[j,10:14] = np.matmul(rotation_a.rotate(axis_a), rot_b_dependency) +\
+				np.matmul(np.cross(angularv_a, rotation_a.rotate(axis_a)), rot_a_dependency)
+
+		return jacob
+
+	def force_response(self,
+			position_a, rotation_a, velocity_a, angularv_a,
+			position_b, rotation_b, velocity_b, angularv_b):
+		force_a_response = np.zeros((3, 2))
+		force_b_response = np.zeros((3, 2))
+		torke_a_response = np.stack((rotation_a.rotate(self.axis_a1), rotation_a.rotate(self.axis_a2)), axis=1)
+		torke_b_response = -torke_a_response
 		return np.vstack((force_a_response, torke_a_response, force_b_response, torke_b_response))
 
 

@@ -5,7 +5,7 @@ import pyglet
 from pyglet.window import key
 import ratcave as rc
 
-from constraint import BallJointConstraint, HingeJointConstraint
+from constraint import BallJointConstraint, ParallelConstraint, HingeJointConstraint
 from physics import RigidBody, Environment, MagneticDipole
 from rendering import BodyActor, VectorActor, Stage
 
@@ -46,10 +46,9 @@ if __name__ == '__main__':
 			],
 			constraints=[
 				BallJointConstraint(satellite_l, satellite_c, [.05, 0,0], [-.05, 0,0]),
-				# BallJointConstraint(satellite_l, satellite_c, [.05,-1,0], [-.05,-1,0]),
+				ParallelConstraint(satellite_l, satellite_c, [0,1,0], [0,1,0]),
 				BallJointConstraint(satellite_c, satellite_r, [.05, 0,0], [-.05, 0,0]),
-				# BallJointConstraint(satellite_c, satellite_r, [.05,-1,0], [-.05,-1,0]),
-				# ParallelConstraint(satellite_l, satellite_c, [0,1,0], [0,1,0]),
+				ParallelConstraint(satellite_c, satellite_r, [0,1,0], [0,1,0]),
 				# HingeJointConstraint(satellite_l, satellite_c, [.05,0,0], [-.05,0,], [0,1,0]),
 				# HingeJointConstraint(satellite_c, satellite_r, [.05,0,-.005], [-.05,0,-.005], [0,1,0]),
 			],

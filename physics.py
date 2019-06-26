@@ -6,7 +6,7 @@ from pyquaternion import Quaternion
 import constraint
 
 
-CONSTRAINT_RECOVERY_TIME = .1 # making this smaller increases the precision with which the constraints are met, but increases the computation time
+CONSTRAINT_RECOVERY_TIME = .01 # making this smaller increases the precision with which the constraints are met, but increases the computation time
 
 
 class RigidBody():
