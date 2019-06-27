@@ -7,6 +7,7 @@ import ratcave as rc
 
 from constraint import Hinge
 from control import Magnetostabilisation
+from event import Launch
 from locomotion import MagneticDipole, Magnetorker, Thruster, GimballedThruster, Drag
 from physics import Environment, RigidBody
 from rendering import BodyActor, VectorActor, Stage
@@ -38,6 +39,7 @@ if __name__ == '__main__':
 	satellite_l = RigidBody(I, m, cm, init_position=[-.05,0,.05], init_velocity=v0, init_angularv=[0,0,0], init_rotation=[np.sqrt(.5), 0, np.sqrt(.5), 0])
 	satellite_c = RigidBody(I, m, cm, init_position=[0,0,0], init_velocity=v0, init_angularv=ω0)
 	satellite_r = RigidBody(I, m, cm, init_position=[.1,0,0], init_velocity=v0, init_angularv=ω0)
+	acetone = RigidBody(1.25e-7*np.identity(3), 5e-3, [0,0,0])
 	magnetometer = Magnetometer(satellite_l)
 
 	environment = Environment(
@@ -45,6 +47,7 @@ if __name__ == '__main__':
 			satellite_l,
 			satellite_c,
 			satellite_r,
+			acetone,
 		],
 		constraints=[
 			# Hinge(satellite_l, satellite_c, [.05,0,-.005], [-.05,0,-.005], [0,1,0], [0,1,0]),
@@ -60,6 +63,9 @@ if __name__ == '__main__':
 			Thruster(satellite_r, [-.05,.05,0], [ 1, 0, 0], lambda t: .004 if int(t)%3==1 else 0),
 			Drag(satellite_c, .001, [0,0,0])
 		],
+		events=[
+			Launch(3, satellite_c, acetone, [0,0,0], [0,0,.2], [63,0,0])
+		],
 		magnetic_field=[0, 0, 35e-6], # T
 		solar_flux=[0, -1.361, 0], # W/m^2
 		air_velocity=[-7.8e3, 0, 0], # m/s
@@ -67,14 +73,15 @@ if __name__ == '__main__':
 	)
 	environment.solve(0, 20)
 
-	for sen in environment.sensors:
-		plt.plot(environment.solution.t, sen.all_readings(environment.solution.y.transpose()))
-	plt.show()
+	# for sen in environment.sensors:
+	# 	plt.plot(environment.solution.t, sen.all_readings(environment.solution.y.transpose()))
+	# plt.show()
 
 	stage = Stage([
 		BodyActor(satellite_l, "ThinSatFrame->Frame"),
 		BodyActor(satellite_c, "ThinSatFrame->Frame"),
 		BodyActor(satellite_r, "ThinSatFrame->Frame"),
+		BodyActor(acetone, "ThinSatFrame->Frame", scale=1/10),
 		# VectorActor(satellite_l, "xaxis", "Resources/arrow->Arrow"),
 		# VectorActor(satellite_l, "yaxis", "Resources/arrow->Arrow"),
 		# VectorActor(satellite_l, "zaxis", "Resources/arrow->Arrow"),

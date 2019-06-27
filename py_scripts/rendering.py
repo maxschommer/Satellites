@@ -14,6 +14,34 @@ VELOCITY_SCALE = .02
 ANGULARV_SCALE = .002
 
 
+class Stage():
+	""" A group of actors with functions for updating and displaying them """
+	def __init__(self, actors, environment, speed=1):
+		""" actors:			[Actor]		the list of Actors visible on this stage
+			environment:	Environment	the Environment of bodies, so that we know about the physical solution we're showing
+			speed:			float		the factor of realtime at which to animate
+		"""
+		self.actors = actors
+		self.environment = environment
+		self.speed = speed
+		self.t = 0
+		self.started = False
+
+	def update(self, dt):
+		""" Move all Actors into updated positions.
+			dt:	float	the number of seconds of realtime that have proressed
+		"""
+		if dt and not self.started: # ignore the first call to update
+			self.started = True # because that's when pyglet tries to skip past the first 3 seconds
+		else:
+			self.t = self.t + self.speed*dt
+			if self.t > self.environment.max_t:
+				return
+
+			for a in self.actors:
+				a.update(self.t)
+
+
 class Actor():
 	""" A visual representation of some entity in physical space. """
 	def __init__(self, model, scale=1, mesh_readers={}):
@@ -22,7 +50,7 @@ class Actor():
 		"""
 		model_directory, model_name = model.split("->")
 		if model_directory not in mesh_readers:
-			mesh_readers[model_directory] = rc.WavefrontReader("Meshes/{}.obj".format(model_directory))
+			mesh_readers[model_directory] = rc.WavefrontReader("../Meshes/{}.obj".format(model_directory))
 		self.mesh = mesh_readers[model_directory].get_mesh(model_name, scale=scale*UNIT_SCALE, mean_center=False)
 		self.mesh.rotation = rc.coordinates.RotationQuaternion(1, 0, 0, 0)
 
@@ -88,35 +116,6 @@ class VectorActor(Actor):
 			self.mesh.scale.y = max(1e-6, ANGULARV_SCALE*np.linalg.norm(ω))
 		else:
 			raise ValueError("Unrecognised vector quantity: {}".format(self.quantity))
-
-
-class Stage():
-	""" A group of actors with functions for updating and displaying them """
-	def __init__(self, actors, environment, speed=1):
-		""" actors:			[Actor]		the list of Actors visible on this stage
-			environment:	Environment	the Environment of bodies, so that we know about the physical solution we're showing
-			speed:			float		the factor of realtime at which to animate
-		"""
-		self.actors = actors
-		self.environment = environment
-		self.speed = speed
-		self.t = 0
-		self.started = False
-
-	def update(self, dt):
-		""" Move all Actors into updated positions.
-			dt:	float	the number of seconds of realtime that have proressed
-		"""
-		if dt and not self.started: # ignore the first call to update
-			self.started = True # because that's when pyglet tries to skip past the first 3 seconds
-		else:
-			self.t = self.t + self.speed*dt
-			if self.t > self.environment.max_t:
-				return
-
-			for a in self.actors:
-				a.update(self.t)
-
 
 
 def assign_wxyz(ratcave_garbage, actual_quaternion):
