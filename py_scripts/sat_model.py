@@ -1,8 +1,6 @@
 import sklearn
-import matplotlib.pyplot as plt
 import numpy as np
-import pyglet
-from pyglet.window import key
+import pickle
 import ratcave as rc
 
 from constraint import Hinge
@@ -14,13 +12,11 @@ from rendering import BodyActor, VectorActor, Stage
 from sensor import Photodiode, Magnetometer
 
 
-
 WINDOW_WIDTH = 800
 WINDOW_HEIGHT = 600
 
 
 if __name__ == '__main__':
-
 	I = [[9.759e-5,  -4.039e-6, -1.060e-7],
 		 [-4.039e-6,  7.858e-5,  7.820e-9],
 		 [ -1.060e-7, 7.820e-9,  1.743e-4]] # kg*m^2
@@ -64,24 +60,20 @@ if __name__ == '__main__':
 			Drag(satellite_c, .001, [0,0,0])
 		],
 		events=[
-			Launch(3, satellite_c, acetone, [0,0,0], [0,0,.2], [63,0,0])
+			Launch(3, satellite_c, acetone, [0,0,0], [0,-.003,.5], [0,12.6,0])
 		],
 		magnetic_field=[0, 0, 35e-6], # T
 		solar_flux=[0, -1.361, 0], # W/m^2
 		air_velocity=[-7.8e3, 0, 0], # m/s
 		air_density=1e-14, # kg/m^3
 	)
-	environment.solve(0, 20)
-
-	# for sen in environment.sensors:
-	# 	plt.plot(environment.solution.t, sen.all_readings(environment.solution.y.transpose()))
-	# plt.show()
+	environment.solve(0, 15)
 
 	stage = Stage([
 		BodyActor(satellite_l, "ThinSatFrame->Frame"),
 		BodyActor(satellite_c, "ThinSatFrame->Frame"),
 		BodyActor(satellite_r, "ThinSatFrame->Frame"),
-		BodyActor(acetone, "ThinSatFrame->Frame", scale=1/10),
+		BodyActor(acetone, "Justin->Justin", scale=30),
 		# VectorActor(satellite_l, "xaxis", "Resources/arrow->Arrow"),
 		# VectorActor(satellite_l, "yaxis", "Resources/arrow->Arrow"),
 		# VectorActor(satellite_l, "zaxis", "Resources/arrow->Arrow"),
@@ -90,18 +82,7 @@ if __name__ == '__main__':
 		VectorActor(satellite_r, "angularv", "Resources/arrow->Arrow"),
 	], environment, speed=1)
 
+	environment.shell()
 
-	window = pyglet.window.Window(width=WINDOW_WIDTH, height=WINDOW_HEIGHT)
-	scene = rc.Scene(
-			meshes=[a.mesh for a in stage.actors],
-			camera=rc.Camera(position=(.1, .1, .5), rotation=(-12, 9, 3)),
-			bgColor=(1, 1, .9))
-
-	@window.event
-	def on_draw():
-		with rc.default_shader:
-			scene.draw()
-
-	pyglet.clock.schedule(stage.update)
-
-	pyglet.app.run()
+	with open('../data.pkl', 'wb') as f:
+		stage = pickle.dump(stage, f)

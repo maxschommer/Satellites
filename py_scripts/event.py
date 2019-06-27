@@ -47,7 +47,6 @@ class Launch(Event):
 		self.payload.position = self.launcher.position + self.launcher.rotation.rotate(self.launch_position)
 		self.payload.momentum = self.payload.m*(launcher_velocity + self.launcher.rotation.rotate(self.launch_velocity))
 		self.payload.angularm = np.matmul(self.payload.I, launcher_angularv + self.launcher.rotation.rotate(self.launch_angularv))
-		print(self.payload.angularm)
 		self.launcher.m -= self.payload.m
 		self.launcher.I -= self.payload.I
 		self.launcher.I_inv = np.linalg.inv(self.launcher.I)

@@ -175,6 +175,12 @@ class Environment():
 
 		return reaction_forces_torkes
 
+	def shell(self):
+		""" Strip away all of the things that don't fit in the pickle jar. """
+		self.constraints = None
+		self.external_impulsors = None
+		self.events = None
+
 
 class RigidBody():
 	""" A physical unbending object free to move and rotate in space """

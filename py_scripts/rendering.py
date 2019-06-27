@@ -27,6 +27,10 @@ class Stage():
 		self.t = 0
 		self.started = False
 
+	def load_resources(self):
+		for actor in self.actors:
+			actor.load_resources()
+
 	def update(self, dt):
 		""" Move all Actors into updated positions.
 			dt:	float	the number of seconds of realtime that have proressed
@@ -44,14 +48,18 @@ class Stage():
 
 class Actor():
 	""" A visual representation of some entity in physical space. """
-	def __init__(self, model, scale=1, mesh_readers={}):
+	def __init__(self, model, scale=1):
 		""" model:			str						"{file address of mesh file}->{internal address of mesh form}"
 			mesh_readers:	{str:WavefrontReader}	a dictionary of existing mesh readers for different files
 		"""
-		model_directory, model_name = model.split("->")
+		self.model = model
+		self.scale = scale
+
+	def load_resources(self, mesh_readers={}):
+		model_directory, model_name = self.model.split("->")
 		if model_directory not in mesh_readers:
 			mesh_readers[model_directory] = rc.WavefrontReader("../Meshes/{}.obj".format(model_directory))
-		self.mesh = mesh_readers[model_directory].get_mesh(model_name, scale=scale*UNIT_SCALE, mean_center=False)
+		self.mesh = mesh_readers[model_directory].get_mesh(model_name, scale=self.scale*UNIT_SCALE, mean_center=False)
 		self.mesh.rotation = rc.coordinates.RotationQuaternion(1, 0, 0, 0)
 
 	def update(self, t):
