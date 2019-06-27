@@ -25,10 +25,12 @@ stage.load_resources()
 # 	plt.plot(environment.solution.t, sen.all_readings(environment.solution.y.transpose()))
 # plt.show()
 
+# stage.environment.max_t = 5.77
+
 scene = rc.Scene(
 	meshes=[a.mesh for a in stage.actors],
-	# camera=rc.Camera(position=(.1, .1, .5), rotation=(-12, 9, 3)),
-	camera=rc.Camera(position=(.0, .0, 1.5), rotation=(0, 0, 0), projection=rc.PerspectiveProjection(fov_y=15, aspect=WINDOW_WIDTH/WINDOW_HEIGHT)),
+	camera=rc.Camera(position=(.1, .1, .5), rotation=(-12, 9, 3)),
+	# camera=rc.Camera(position=(.0, .0, 1.5), rotation=(0, 0, 0), projection=rc.PerspectiveProjection(fov_y=15, aspect=WINDOW_WIDTH/WINDOW_HEIGHT)),
 	light=rc.Light(position=(0., 2., 1.)),
 	bgColor=(1, 1, .9))
 

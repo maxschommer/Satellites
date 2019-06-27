@@ -40,7 +40,7 @@ class Stage():
 		else:
 			self.t = self.t + self.speed*dt
 			if self.t > self.environment.max_t:
-				return
+				self.t -= self.environment.max_t
 
 			for a in self.actors:
 				a.update(self.t)
