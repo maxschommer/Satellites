@@ -43,7 +43,7 @@ class Magnetorker(Impulsor):
 	def torke_on(self, body, time, position, rotation, velocity, angularv):
 		if body is self.body:
 			return np.cross(
-				rotation.rotate(self.moment(time)), self.environment.magnetic_field)
+				rotation.rotate(self.moment(time)), self.environment.get_magnetic_field(time))
 		else:
 			return np.zeros(3)
 
@@ -108,7 +108,8 @@ class Drag(Impulsor):
 
 	def force_on(self, body, time, position, rotation, velocity, angularv):
 		if body is self.body:
-			return 1/2*self.area*self.environment.air_density*np.linalg.norm(self.environment.air_velocity)*self.environment.air_velocity
+			velocity = self.environment.get_air_velocity(time)
+			return 1/2*self.area*self.environment.get_air_density(time)*np.linalg.norm(velocity)*velocity
 		else:
 			return np.zeros(3)
 

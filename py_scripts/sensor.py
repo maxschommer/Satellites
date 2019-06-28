@@ -7,14 +7,14 @@ class Sensor:
 	def __init__(self):
 		self.environment = None
 
-	def sense(self, positions, rotations, velocitys, angularvs):
+	def sense(self, time, positions, rotations, velocitys, angularvs):
 		""" Store the current reading. """
-		self.last_value = self.reading(positions, rotations, velocitys, angularvs)
+		self.last_value = self.reading(time, positions, rotations, velocitys, angularvs)
 
-	def all_readings(self, states):
+	def all_readings(self, ts, states):
 		""" Get readings in bulk and output them in a list. """
 		readings = []
-		for state in states:
+		for t, state in zip(ts, states):
 			positions, rotations, velocitys, angularvs = [], [], [], []
 			for i, body in enumerate(self.environment.bodies):
 				positions.append(state[13*i:13*i+3])
@@ -24,11 +24,11 @@ class Sensor:
 				I_inv_rot = np.matmul(np.matmul(rotations[i].rotation_matrix,body.I_inv),rotations[i].rotation_matrix.transpose())
 				velocitys.append(momentum/body.m)
 				angularvs.append(np.matmul(I_inv_rot, angularm))
-			readings.append(self.reading(positions, rotations, velocitys, angularvs))
+			readings.append(self.reading(t, positions, rotations, velocitys, angularvs))
 		return readings
 
 
-	def reading(self, positions, rotations, velocitys, angularvs):
+	def reading(self, time, positions, rotations, velocitys, angularvs):
 		""" Get the current value seen by the sensor. """
 		raise NotImplementedError("Subclasses should override.")
 
@@ -42,9 +42,9 @@ class Photodiode(Sensor):
 		self.body = body
 		self.direction = np.array(direction)
 
-	def reading(self, positions, rotations, velocitys, angularvs):
-		if np.dot(rotations[self.body.body_num].rotate(self.direction), self.environment.solar_flux) < 0:
-			return np.linalg.norm(self.environment.solar_flux)
+	def reading(self, time, positions, rotations, velocitys, angularvs):
+		if np.dot(rotations[self.body.body_num].rotate(self.direction), self.environment.get_solar_flux(time)) < 0:
+			return np.linalg.norm(self.environment.get_solar_flux(time))
 		else:
 			return 0
 
@@ -57,7 +57,7 @@ class Magnetometer(Sensor):
 		"""
 		self.body = body
 
-	def reading(self, positions, rotations, velocitys, angularvs):
-		B_rot = rotations[self.body.body_num].inverse.rotate(self.environment.magnetic_field)
+	def reading(self, time, positions, rotations, velocitys, angularvs):
+		B_rot = rotations[self.body.body_num].inverse.rotate(self.environment.get_magnetic_field(time))
 		B_dot_rot = -np.cross(rotations[self.body.body_num].inverse.rotate(angularvs[self.body.body_num]), B_rot)
 		return np.concatenate((B_rot, B_dot_rot))

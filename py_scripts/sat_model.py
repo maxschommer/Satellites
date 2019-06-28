@@ -6,6 +6,7 @@ import ratcave as rc
 from constraint import Hinge
 from control import Magnetostabilisation
 from event import Launch
+from gmat_integration import SunTable, VelocityTable, AtmosphericTable
 from locomotion import MagneticDipole, Magnetorker, Thruster, GimballedThruster, Drag
 from physics import Environment, RigidBody
 from rendering import BodyActor, VectorActor, Stage
@@ -27,9 +28,8 @@ if __name__ == '__main__':
 	cm = [0.00215328, -0.00860001, -0.00038142] # m --> check coordinates
 	# cm = [0,0,0]
 	# cm = [0, 0, .1]
-	# v0 = [.01,.005,-.02] # m/s
 	# ω0 = [-.05,.2, -.4] # rad/s
-	v0 = [0, 0, 0]
+	v0 = [0, 0, 0] # m/s
 	ω0 = [0, 0, 0]
 
 	satellite_l = RigidBody(I, m, cm, init_position=[-.05,0,.05], init_velocity=v0, init_angularv=[0,0,0], init_rotation=[np.sqrt(.5), 0, np.sqrt(.5), 0])
@@ -50,11 +50,12 @@ if __name__ == '__main__':
 			# Hinge(satellite_c, satellite_r, [.05,0, .005], [-.05,0, .005], [0,1,0], [0,1,0]),
 		],
 		sensors=[
-			# Photodiode(satellite_l, [0,0,1]),
+			Photodiode(satellite_l, [0,0,1]),
+			Photodiode(satellite_l, [0,0,-1]),
 			magnetometer,
 		],
 		external_impulsors=[
-			Magnetorker(satellite_l, Magnetostabilisation(magnetometer, [0, 0, 1])),
+			Magnetorker(satellite_l, Magnetostabilisation(magnetometer, [0, 0, 1], max_moment=.02)),
 			Thruster(satellite_r, [ .05,.05,0], [-1, 0, 0], lambda t: .004 if int(t)%3==0 else 0),
 			Thruster(satellite_r, [-.05,.05,0], [ 1, 0, 0], lambda t: .004 if int(t)%3==1 else 0),
 			Drag(satellite_c, .001, [0,0,0])
@@ -63,9 +64,9 @@ if __name__ == '__main__':
 			Launch(3, satellite_c, acetone, [0,0,0], [0,-.003,.5], [0,12.6,0])
 		],
 		magnetic_field=[0, 0, 35e-6], # T
-		solar_flux=[0, -1.361, 0], # W/m^2
-		air_velocity=[-7.8e3, 0, 0], # m/s
-		air_density=1e-14, # kg/m^3
+		solar_flux=SunTable('../gmat_scripts/sunrise_sunset_table.txt'), # W/m^2
+		air_velocity=VelocityTable('../gmat_scripts/ReportFile1.txt'), # m/s
+		air_density=AtmosphericTable('../gmat_scripts/ReportFile1.txt'), # kg/m^3
 	)
 	environment.solve(0, 15)
 

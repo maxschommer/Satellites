@@ -31,9 +31,9 @@ class Environment():
 			imp.environment = self
 		self.events = events
 
-		self.magnetic_field = np.array(magnetic_field) # TODO: at some point, when GMAT integration becomes a thing,
-		self.solar_flux = np.array(solar_flux) #		       we'll want to read time tables for these
-		self.air_velocity = np.array(air_velocity)
+		self.magnetic_field = magnetic_field if hasattr(magnetic_field, 'get_value') else np.array(magnetic_field)
+		self.solar_flux     = solar_flux if hasattr(solar_flux, 'get_value') else np.array(solar_flux)
+		self.air_velocity   = air_velocity if hasattr(air_velocity, 'get_value') else np.array(air_velocity)
 		self.air_density = air_density
 
 		self.solution = None
@@ -110,7 +110,7 @@ class Environment():
 			angularvs.append(np.matmul(I_inv_rots[i], angularms[i])) # make sure to use the correct ref frame when multiplying by I^-1
 
 		for sen in self.sensors: # feed those results to all sensors
-			sen.sense(positions, rotations, velocitys, angularvs)
+			sen.sense(t, positions, rotations, velocitys, angularvs)
 
 		forces, torkes = [], []
 		for i, body in enumerate(self.bodies): # then resolve the effects of external forces and torkes
@@ -174,6 +174,31 @@ class Environment():
 			f = f[constraint.num_dof:]
 
 		return reaction_forces_torkes
+
+	def get_magnetic_field(self, t):
+		if hasattr(self.magnetic_field, 'get_value'):
+			return self.magnetic_field.get_value(t)
+		else:
+			return self.magnetic_field
+
+	def get_solar_flux(self, t):
+		if hasattr(self.solar_flux, 'get_value'):
+			return self.solar_flux.get_value(t)
+		else:
+			return self.solar_flux
+
+	def get_air_velocity(self, t):
+		if hasattr(self.air_velocity, 'get_value'):
+			return self.air_velocity.get_value(t)
+		else:
+			return self.air_velocity
+
+	def get_air_density(self, t):
+		if hasattr(self.air_density, 'get_value'):
+			return self.air_density.get_value(t)
+		else:
+			print(e)
+			return self.air_density
 
 	def shell(self):
 		""" Strip away all of the things that don't fit in the pickle jar. """

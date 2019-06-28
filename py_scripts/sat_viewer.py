@@ -3,6 +3,7 @@ import numpy as np
 import pickle
 import pyglet
 from pyglet.window import key
+from pyquaternion import Quaternion
 import ratcave as rc
 
 
@@ -10,37 +11,47 @@ WINDOW_WIDTH = 800
 WINDOW_HEIGHT = 600
 
 
-with open('../data.pkl', 'rb') as f:
-	stage = pickle.load(f)
+def look_at(target, source=[0, 0, -1], roll=0):
+	""" Return a Ratcave Rotation object that makes the camera look in the given direction. """
+	target = np.array(target)/np.linalg.norm(target)
+	source = np.array(source)/np.linalg.norm(source)
+	q = Quaternion(axis=np.cross(source, target), angle=np.arccos(np.dot(target, source)))
+	q = Quaternion(axis=target, degrees=roll)*q
+	return rc.RotationQuaternion(*q).to_euler(units='deg')
 
-stage.load_resources()
 
-# print(stage.environment.solution)
-# T = np.linspace(0, stage.environment.max_t)
-# Y = np.array([stage.environment.solution(t) for t in T])
-# plt.plot(T, Y)
-# plt.show()
+if __name__ == '__main__':
+	with open('../data.pkl', 'rb') as f:
+		stage = pickle.load(f)
 
-# for sen in environment.sensors:
-# 	plt.plot(environment.solution.t, sen.all_readings(environment.solution.y.transpose()))
-# plt.show()
+	stage.load_resources()
 
-# stage.environment.max_t = 5.77
+	# print(stage.environment.solution)
+	# T = np.linspace(0, stage.environment.max_t)
+	# Y = np.array([stage.environment.solution(t) for t in T])
+	# plt.plot(T, Y)
+	# plt.show()
 
-scene = rc.Scene(
-	meshes=[a.mesh for a in stage.actors],
-	camera=rc.Camera(position=(.1, .1, .5), rotation=(-12, 9, 3)),
-	# camera=rc.Camera(position=(.0, .0, 1.5), rotation=(0, 0, 0), projection=rc.PerspectiveProjection(fov_y=15, aspect=WINDOW_WIDTH/WINDOW_HEIGHT)),
-	light=rc.Light(position=(0., 2., 1.)),
-	bgColor=(1, 1, .9))
+	# for sen in environment.sensors:
+	# 	plt.plot(T, sen.all_readings(T, Y))
+	# plt.show()
 
-window = pyglet.window.Window(width=WINDOW_WIDTH, height=WINDOW_HEIGHT)
+	# stage.environment.max_t = 5.77
 
-@window.event
-def on_draw():
-	with rc.default_shader:
-		scene.draw()
+	scene = rc.Scene(
+		meshes=[a.mesh for a in stage.actors],
+		camera=rc.Camera(position=(-.5, -.1, .1), rotation=look_at([5, 1, -1], roll=79)),
+		# camera=rc.Camera(position=(-1.5, 0, 0), rotation=(0, -90, 0), projection=rc.PerspectiveProjection(fov_y=15, aspect=WINDOW_WIDTH/WINDOW_HEIGHT)),
+		light=rc.Light(position=(0., 5., -1.)),
+		bgColor=(1, 1, .9))
 
-pyglet.clock.schedule(stage.update)
+	window = pyglet.window.Window(width=WINDOW_WIDTH, height=WINDOW_HEIGHT)
 
-pyglet.app.run()
+	@window.event
+	def on_draw():
+		with rc.default_shader:
+			scene.draw()
+
+	pyglet.clock.schedule(stage.update)
+
+	pyglet.app.run()
