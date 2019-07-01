@@ -25,16 +25,17 @@ if __name__ == '__main__':
 		stage = pickle.load(f)
 
 	stage.load_resources()
+	stage.speed = 10
 
-	# print(stage.environment.solution)
-	# T = np.linspace(0, stage.environment.max_t)
-	# Y = np.array([stage.environment.solution(t) for t in T])
+	T = np.linspace(0, stage.environment.max_t, 216)
+	Y = np.array([stage.environment.solution(t) for t in T])
+	# plt.figure()
 	# plt.plot(T, Y)
 	# plt.show()
-
-	# for sen in environment.sensors:
-	# 	plt.plot(T, sen.all_readings(T, Y))
-	# plt.show()
+	plt.figure()
+	for sen in stage.environment.sensors:
+		plt.plot(T, sen.all_readings(T, Y))
+	plt.show()
 
 	# stage.environment.max_t = 5.77
 
