@@ -72,7 +72,7 @@ class Environment():
 					initial_state.extend([*body.position, *body.rotation, *body.momentum, *body.angularm])
 				else:
 					initial_state.extend([-9000,0,0, 1,0,0,0, 0,0,0, 0,0,0])
-			step_solution = solve_ivp(self.ode_func, [t, tf], initial_state, dense_output=True, events=self.events) # solve
+			step_solution = solve_ivp(self.ode_func, [t, tf], initial_state, dense_output=True, events=self.events, method='LSODA') # solve
 			full_ts.extend(step_solution.sol.ts[:-1]) # save the results to our full solution
 			full_interpolants.extend(step_solution.sol.interpolants)
 			final_state = step_solution.y[:,-1] # unpack the "final" state

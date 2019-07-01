@@ -115,6 +115,6 @@ class Drag(Impulsor):
 
 	def torke_on(self, body, time, position, rotation, velocity, angularv):
 		if body is self.body:
-			return np.cross(self.cp_position, self.force_on(body, time, position, rotation, velocity, angularv))
+			return np.cross(rotation.rotate(self.cp_position), self.force_on(body, time, position, rotation, velocity, angularv))
 		else:
 			return np.zeros(3)

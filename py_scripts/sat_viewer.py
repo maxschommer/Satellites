@@ -21,7 +21,7 @@ def look_at(target, source=[0, 0, -1], roll=0):
 
 
 if __name__ == '__main__':
-	with open('../saves/rect6.pkl', 'rb') as f:
+	with open('../saves/rect5.pkl', 'rb') as f:
 		stage = pickle.load(f)
 
 	stage.load_resources()
@@ -43,7 +43,7 @@ if __name__ == '__main__':
 		meshes=[a.mesh for a in stage.actors],
 		camera=rc.Camera(position=(-.5, -.1, .1), rotation=look_at([5, 1, -1], roll=79)),
 		# camera=rc.Camera(position=(-1.5, 0, 0), rotation=(0, -90, 0), projection=rc.PerspectiveProjection(fov_y=15, aspect=WINDOW_WIDTH/WINDOW_HEIGHT)),
-		light=rc.Light(position=(0., 5., -1.)),
+		light=rc.Light(position=(0., 5., 1.)),
 		bgColor=(1, 1, .9))
 
 	window = pyglet.window.Window(width=WINDOW_WIDTH, height=WINDOW_HEIGHT)

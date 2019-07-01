@@ -41,11 +41,10 @@ if __name__ == '__main__':
 	# satellite_c = RigidBody(I, m, cm, init_position=[0,0,0], init_velocity=v0, init_angularv=ω0, init_rotation=q0)
 	# satellite_r = RigidBody(I, m, cm, init_position=[.1,0,0], init_velocity=v0, init_angularv=ω0, init_rotation=q0)
 	# acetone = RigidBody(1.25e-7*np.identity(3), 5e-3, [0,0,0])
-	# magnetometer = Magnetometer(satellite_l)
-	d, w, l = .008, .06, .1
-	from pyquaternion import Quaternion
-	q = Quaternion(axis=[0,1,0], degrees=90)*Quaternion(axis=[1,0,0], degrees=90)
-	arrow = RigidBody([[(l**2+d**2)/12, 0, 0], [0, (w**2+l**2)/12, 0], [0, 0, (d**2+w**2)/12]], 1, [0, 0, 0], init_rotation=q, init_angularv=[0, 0, np.pi])
+	h = .1
+	r = h/12
+	arrow = RigidBody([[(3*r**2+h**2)/12, 0, 0], [0, r**2/2, 0], [0, 0, (3*r**2+h**2)/12]], 1, [0, h/2, 0], init_rotation=[np.sqrt(.5),np.sqrt(.5),0,0])
+	# magnetometer = Magnetometer(arrow)
 
 	environment = Environment(
 		bodies=[
@@ -78,7 +77,7 @@ if __name__ == '__main__':
 		air_velocity=VelocityTable('../gmat_scripts/ReportFile1.txt'), # m/s
 		air_density=AtmosphericTable('../gmat_scripts/ReportFile1.txt'), # kg/m^3
 	)
-	environment.solve(0, 20)
+	environment.solve(0, 1000)
 
 	stage = Stage([
 		# BodyActor(satellite_l, "ThinSatFrame->Frame"),
@@ -88,11 +87,11 @@ if __name__ == '__main__':
 		# VectorActor(satellite_l, "angularv", "Resources/arrow->Arrow"),
 		# VectorActor(satellite_c, "angularv", "Resources/arrow->Arrow"),
 		# VectorActor(satellite_r, "angularv", "Resources/arrow->Arrow"),
-		BodyActor(arrow, "Resources/rectangle->Rectangle"),
-		VectorActor(arrow, "angularv", "Resources/arrow->Arrow")
+		BodyActor(arrow, "Resources/arrow->Arrow"),
+		# VectorActor(arrow, "angularv", "Resources/arrow->Arrow")
 	], environment)
 
 	environment.shell()
 
-	with open('../saves/rect6.pkl', 'wb') as f:
+	with open('../saves/drag.pkl', 'wb') as f:
 		stage = pickle.dump(stage, f)
