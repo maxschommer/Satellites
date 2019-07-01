@@ -21,21 +21,21 @@ def look_at(target, source=[0, 0, -1], roll=0):
 
 
 if __name__ == '__main__':
-	with open('../data.pkl', 'rb') as f:
+	with open('../saves/rect6.pkl', 'rb') as f:
 		stage = pickle.load(f)
 
 	stage.load_resources()
-	stage.speed = 10
+	stage.speed = 1
 
-	T = np.linspace(0, stage.environment.max_t, 216)
-	Y = np.array([stage.environment.solution(t) for t in T])
+	# T = np.linspace(0, stage.environment.max_t, 216)
+	# Y = np.array([stage.environment.solution(t) for t in T])
 	# plt.figure()
-	# plt.plot(T, Y)
+	# plt.plot(T, np.sqrt(Y[:,3]**2+Y[:,4]**2+Y[:,5]**2+Y[:,6]**2))
 	# plt.show()
-	plt.figure()
-	for sen in stage.environment.sensors:
-		plt.plot(T, sen.all_readings(T, Y))
-	plt.show()
+	# plt.figure()
+	# for sen in stage.environment.sensors:
+	# 	plt.plot(T, sen.all_readings(T, Y))
+	# plt.show()
 
 	# stage.environment.max_t = 5.77
 

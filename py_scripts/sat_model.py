@@ -8,6 +8,7 @@ from control import Magnetostabilisation
 from event import Launch
 from gmat_integration import SunTable, VelocityTable, AtmosphericTable
 from locomotion import MagneticDipole, Magnetorker, Thruster, GimballedThruster, Drag
+import matplotlib.pyplot as plt
 from physics import Environment, RigidBody
 from rendering import BodyActor, VectorActor, Stage
 from sensor import Photodiode, Magnetometer
@@ -32,22 +33,27 @@ if __name__ == '__main__':
 	# cm = [0, 0, .1]
 	q0 = np.random.randn(4)
 	q0 = q0/np.linalg.norm(q0)
-	v0 = [0, 0, 0] # m/s
+	v0 = [1, 0, 0] # m/s
 	# ω0 = [-.05,.2, -.4] # rad/s
 	ω0 = np.random.normal(0., 1., 3)
 
-	satellite_l = RigidBody(I, m, cm, init_position=[-.05,0,.05], init_velocity=v0, init_angularv=ω0, init_rotation=q0)#, init_rotation=[np.sqrt(.5), 0, np.sqrt(.5), 0])
-	satellite_c = RigidBody(I, m, cm, init_position=[0,0,0], init_velocity=v0, init_angularv=ω0, init_rotation=q0)
-	satellite_r = RigidBody(I, m, cm, init_position=[.1,0,0], init_velocity=v0, init_angularv=ω0, init_rotation=q0)
-	acetone = RigidBody(1.25e-7*np.identity(3), 5e-3, [0,0,0])
-	magnetometer = Magnetometer(satellite_l)
+	# satellite_l = RigidBody(I, m, cm, init_position=[-.05,0,.05], init_velocity=v0, init_angularv=ω0, init_rotation=q0)#, init_rotation=[np.sqrt(.5), 0, np.sqrt(.5), 0])
+	# satellite_c = RigidBody(I, m, cm, init_position=[0,0,0], init_velocity=v0, init_angularv=ω0, init_rotation=q0)
+	# satellite_r = RigidBody(I, m, cm, init_position=[.1,0,0], init_velocity=v0, init_angularv=ω0, init_rotation=q0)
+	# acetone = RigidBody(1.25e-7*np.identity(3), 5e-3, [0,0,0])
+	# magnetometer = Magnetometer(satellite_l)
+	d, w, l = .008, .06, .1
+	from pyquaternion import Quaternion
+	q = Quaternion(axis=[0,1,0], degrees=90)*Quaternion(axis=[1,0,0], degrees=90)
+	arrow = RigidBody([[(l**2+d**2)/12, 0, 0], [0, (w**2+l**2)/12, 0], [0, 0, (d**2+w**2)/12]], 1, [0, 0, 0], init_rotation=q, init_angularv=[0, 0, np.pi])
 
 	environment = Environment(
 		bodies=[
-			satellite_l,
-			satellite_c,
-			satellite_r,
-			acetone,
+			# satellite_l,
+			# satellite_c,
+			# satellite_r,
+			# acetone,
+			arrow,
 		],
 		constraints=[
 			# Hinge(satellite_l, satellite_c, [.05,0,-.005], [-.05,0,-.005], [0,1,0], [0,1,0]),
@@ -56,10 +62,10 @@ if __name__ == '__main__':
 		sensors=[
 			# Photodiode(satellite_l, [0,0,1]),
 			# Photodiode(satellite_l, [0,0,-1]),
-			magnetometer,
+			# magnetometer,
 		],
 		external_impulsors=[
-			Magnetorker(satellite_l, Magnetostabilisation(magnetometer, [0, 1, 0], max_moment=.02)),
+			# Magnetorker(satellite_l, Magnetostabilisation(magnetometer, [0, 1, 0], max_moment=.02)),
 			# Thruster(satellite_r, [ .05,.05,0], [-1, 0, 0], lambda t: .004 if int(t)%3==0 else 0),
 			# Thruster(satellite_r, [-.05,.05,0], [ 1, 0, 0], lambda t: .004 if int(t)%3==1 else 0),
 			# Drag(satellite_c, .001, [0,0,0])
@@ -72,22 +78,21 @@ if __name__ == '__main__':
 		air_velocity=VelocityTable('../gmat_scripts/ReportFile1.txt'), # m/s
 		air_density=AtmosphericTable('../gmat_scripts/ReportFile1.txt'), # kg/m^3
 	)
-	environment.solve(0, 300)
+	environment.solve(0, 20)
 
 	stage = Stage([
-		BodyActor(satellite_l, "ThinSatFrame->Frame"),
-		BodyActor(satellite_c, "ThinSatFrame->Frame"),
-		BodyActor(satellite_r, "ThinSatFrame->Frame"),
-		BodyActor(acetone, "Justin->Justin", scale=30),
-		# VectorActor(satellite_l, "xaxis", "Resources/arrow->Arrow"),
-		# VectorActor(satellite_l, "yaxis", "Resources/arrow->Arrow"),
-		# VectorActor(satellite_l, "zaxis", "Resources/arrow->Arrow"),
-		VectorActor(satellite_l, "angularv", "Resources/arrow->Arrow"),
-		VectorActor(satellite_c, "angularv", "Resources/arrow->Arrow"),
-		VectorActor(satellite_r, "angularv", "Resources/arrow->Arrow"),
+		# BodyActor(satellite_l, "ThinSatFrame->Frame"),
+		# BodyActor(satellite_c, "ThinSatFrame->Frame"),
+		# BodyActor(satellite_r, "ThinSatFrame->Frame"),
+		# BodyActor(acetone, "Justin->Justin", scale=30),
+		# VectorActor(satellite_l, "angularv", "Resources/arrow->Arrow"),
+		# VectorActor(satellite_c, "angularv", "Resources/arrow->Arrow"),
+		# VectorActor(satellite_r, "angularv", "Resources/arrow->Arrow"),
+		BodyActor(arrow, "Resources/rectangle->Rectangle"),
+		VectorActor(arrow, "angularv", "Resources/arrow->Arrow")
 	], environment)
 
 	environment.shell()
 
-	with open('../data.pkl', 'wb') as f:
+	with open('../saves/rect6.pkl', 'wb') as f:
 		stage = pickle.dump(stage, f)

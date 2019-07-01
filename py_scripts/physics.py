@@ -99,15 +99,18 @@ class Environment():
 		""" The state evolution vector to pass into Python's ODE solver. """
 		positions, rotations, velocitys, angularvs = [], [], [], []
 		momentums, angularms, I_inv_rots = [], [], []
+		angularv_qs = [] # this one is the derivative of the rotation in quaternion space
 		state_dot = [] # as well as the derivative of state, usable by the ODE solver
 		for i, body in enumerate(self.bodies): # first unpack the state vector
 			positions.append(state[13*i:13*i+3])
 			rotations.append(Quaternion(state[13*i+3:13*i+7]))
 			momentums.append(state[13*i+7:13*i+10])
 			angularms.append(state[13*i+10:13*i+13])
-			I_inv_rots.append(np.matmul(np.matmul(rotations[i].rotation_matrix,body.I_inv),rotations[i].rotation_matrix.transpose()))
+			rotation_matrix = rotations[i].normalised.rotation_matrix
+			I_inv_rots.append(np.matmul(np.matmul(rotation_matrix, body.I_inv), rotation_matrix.transpose()))
 			velocitys.append(momentums[i]/body.m)
 			angularvs.append(np.matmul(I_inv_rots[i], angularms[i])) # make sure to use the correct ref frame when multiplying by I^-1
+			angularv_qs.append(Quaternion(scalar=(1-rotations[i].magnitude)/.1, vector=angularvs[i])*rotations[i]/2)
 
 		for sen in self.sensors: # feed those results to all sensors
 			sen.sense(t, positions, rotations, velocitys, angularvs)
@@ -119,7 +122,7 @@ class Environment():
 			for imp in self.external_impulsors:
 				forces[i] += imp.force_on(body, t, positions[i], rotations[i], velocitys[i], angularvs[i])
 				torkes[i] += imp.torke_on(body, t, positions[i], rotations[i], velocitys[i], angularvs[i])
-			state_dot.extend([*velocitys[i], *(Quaternion(vector=angularvs[i])*rotations[i]/2), *forces[i], *torkes[i]]) # build the vector to return
+			state_dot.extend([*velocitys[i], *angularv_qs[i], *forces[i], *torkes[i]]) # build the vector to return
 		state_dot = np.array(state_dot)
 		
 		reaction_forces_torkes = self.solve_for_constraints(positions, rotations, velocitys, angularvs, I_inv_rots, forces, torkes) # now account for constraints
