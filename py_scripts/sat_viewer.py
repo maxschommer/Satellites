@@ -21,11 +21,11 @@ def look_at(target, source=[0, 0, -1], roll=0):
 
 
 if __name__ == '__main__':
-	with open('../saves/rect5.pkl', 'rb') as f:
+	with open('../saves/drag1.pkl', 'rb') as f:
 		stage = pickle.load(f)
 
 	stage.load_resources()
-	stage.speed = 1
+	stage.speed = 500
 
 	# T = np.linspace(0, stage.environment.max_t, 216)
 	# Y = np.array([stage.environment.solution(t) for t in T])

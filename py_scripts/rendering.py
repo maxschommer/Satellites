@@ -12,6 +12,7 @@ Z_AX_ROTATION = Quaternion(axis=[0,0,1], degrees=90)
 UNIT_SCALE = 9e-4
 VELOCITY_SCALE = .02
 ANGULARV_SCALE = .002
+WIND_SCALE = 2e-7
 
 
 class Stage():
@@ -124,6 +125,32 @@ class VectorActor(Actor):
 			self.mesh.scale.y = max(1e-6, ANGULARV_SCALE*np.linalg.norm(ω))
 		else:
 			raise ValueError("Unrecognised vector quantity: {}".format(self.quantity))
+
+
+class VectorFieldActor(Actor):
+	""" An Actor that represents a vector field. """
+	def __init__(self, field, model, position=[0,0,0]):
+		""" field	3 vector or Table	the vector field to depict
+			model	str					"{file address of mesh file}->{internal address of mesh form}"
+		"""
+		super().__init__(model)
+		self.field = field
+		self.position = position
+
+	def load_resources(self):
+		super().load_resources()
+		self.mesh.position = np.array(self.position) # set the position when you first load the mesh; it won't move
+
+	def update(self, t):
+		if hasattr(self.field, 'get_value'):
+			v = self.field.get_value(t)
+		else:
+			v = self.field
+		if v[0] == 0 and v[2] == 0:
+			assign_wxyz(self.mesh.rotation, [1,0,0,0] if ω[1] > 0 else [0,1,0,0])
+		else:
+			assign_wxyz(self.mesh.rotation, Quaternion(axis=[v[2],0,-v[0]], angle=np.arccos(v[1]/np.linalg.norm(v))))
+		self.mesh.scale.y = max(1e-6, WIND_SCALE*np.linalg.norm(v))
 
 
 def assign_wxyz(ratcave_garbage, actual_quaternion):
