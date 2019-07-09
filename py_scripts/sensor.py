@@ -16,12 +16,13 @@ class Sensor:
 		readings = []
 		for t, state in zip(ts, states):
 			positions, rotations, velocitys, angularvs = [], [], [], []
-			for i, body in enumerate(self.environment.bodies):
-				positions.append(state[13*i:13*i+3])
-				rotations.append(Quaternion(state[13*i+3:13*i+7]))
-				momentum = state[13*i+7:13*i+10]
-				angularm = state[13*i+10:13*i+13]
-				I_inv_rot = np.matmul(np.matmul(rotations[i].rotation_matrix,body.I_inv),rotations[i].rotation_matrix.transpose())
+			for body in self.environment.bodies.values():
+				idx = 13*body.num
+				positions.append(state[idx+0:idx+3])
+				rotations.append(Quaternion(state[idx+3:idx+7]))
+				momentum = state[idx+7:idx+10]
+				angularm = state[idx+10:idx+13]
+				I_inv_rot = np.matmul(np.matmul(rotations[-1].rotation_matrix,body.I_inv),rotations[-1].rotation_matrix.transpose())
 				velocitys.append(momentum/body.m)
 				angularvs.append(np.matmul(I_inv_rot, angularm))
 			readings.append(self.reading(t, positions, rotations, velocitys, angularvs))
@@ -45,10 +46,9 @@ class Photodiode(Sensor):
 
 	def reading(self, time, positions, rotations, velocitys, angularvs):
 		solar_flux = self.environment.get_solar_flux(time)
-		angle = np.arccos(np.dot(rotations[self.body.body_num].rotate(self.direction), solar_flux/np.linalg.norm(solar_flux)))
-		if angle < np.pi/2 - SUN_SIZE/2:
+		if np.dot(rotations[self.body.num].rotate(self.direction), solar_flux) >= 0:
 			return np.linalg.norm(solar_flux)
-		else angle > np.pi/2 + SUN_SIZE/2:
+		else:
 			return 0
 
 
@@ -61,6 +61,6 @@ class Magnetometer(Sensor):
 		self.body = body
 
 	def reading(self, time, positions, rotations, velocitys, angularvs):
-		B_rot = rotations[self.body.body_num].inverse.rotate(self.environment.get_magnetic_field(time))
-		B_dot_rot = -np.cross(rotations[self.body.body_num].inverse.rotate(angularvs[self.body.body_num]), B_rot)
+		B_rot = rotations[self.body.num].inverse.rotate(self.environment.get_magnetic_field(time))
+		B_dot_rot = -np.cross(rotations[self.body.num].inverse.rotate(angularvs[self.body.num]), B_rot)
 		return np.concatenate((B_rot, B_dot_rot))

@@ -1,4 +1,3 @@
-import matplotlib.pyplot as plt
 import numpy as np
 import pickle
 import pyglet
@@ -6,9 +5,13 @@ from pyglet.window import key
 from pyquaternion import Quaternion
 import ratcave as rc
 
+from rendering import Stage, BodyActor, VectorActor, VectorFieldActor
+
 
 WINDOW_WIDTH = 800
 WINDOW_HEIGHT = 600
+
+FILENAME = 'stabl0.pkl'
 
 
 def look_at(target, source=[0, 0, -1], roll=0):
@@ -21,43 +24,40 @@ def look_at(target, source=[0, 0, -1], roll=0):
 
 
 if __name__ == '__main__':
-	with open('../saves/drag1.pkl', 'rb') as f:
-		stage = pickle.load(f)
+	with open('../saves/{}'.format(FILENAME), 'rb') as f: # load the desired save
+		environment = pickle.load(f)
 
-	stage.load_resources()
-	stage.speed = 500
+	stage = Stage([ # construct the stage with which to render the simulation
+		BodyActor('left_sat', "ThinSatFrame->Frame"),
+		BodyActor('center_sat', "ThinSatFrame->Frame"),
+		BodyActor('right_sat', "ThinSatFrame->Frame"),
+		BodyActor('acetone', "Justin->Justin", scale=30),
+		# BodyActor('satellites', "ThinSatAsm->ThinSatAsm"),
+		VectorActor('left_sat', "angularv", "Resources/arrow->Arrow"),
+		VectorActor('center_sat', "angularv", "Resources/arrow->Arrow"),
+		VectorActor('right_sat', "angularv", "Resources/arrow->Arrow"),
+		# VectorActor('satellites', "angularv", "Resources/arrow->Arrow"),
+		# VectorFieldActor(environment.air_velocity, "Resources/arrow->Arrow", 'satellites'),
+	], environment, speed=1)
 
-	# T = np.linspace(0, stage.environment.max_t, 216)
-	# Y = np.array([stage.environment.solution(t) for t in T])
-	# plt.figure()
-	# plt.plot(T, np.sqrt(Y[:,3]**2+Y[:,4]**2+Y[:,5]**2+Y[:,6]**2))
-	# plt.show()
-	# plt.figure()
-	# for sen in stage.environment.sensors:
-	# 	plt.plot(T, sen.all_readings(T, Y))
-	# plt.show()
-
-	# stage.environment.max_t = 5.77
-
-	scene = rc.Scene(
+	scene = rc.Scene( # build the ratcave scene
 		meshes=[a.mesh for a in stage.actors],
 		camera=rc.Camera(position=(-.5, -.1, .1), rotation=look_at([5, 1, -1], roll=79)),
-		# camera=rc.Camera(position=(-1.5, 0, 0), rotation=(0, -90, 0), projection=rc.PerspectiveProjection(fov_y=15, aspect=WINDOW_WIDTH/WINDOW_HEIGHT)),
 		light=rc.Light(position=(0., 5., 1.)),
 		bgColor=(1, 1, .9))
 
-	window = pyglet.window.Window(width=WINDOW_WIDTH, height=WINDOW_HEIGHT)
+	window = pyglet.window.Window(width=WINDOW_WIDTH, height=WINDOW_HEIGHT) # open the pyglet window
 
-	@window.event
+	@window.event # queue up the drawing process
 	def on_draw():
 		with rc.default_shader:
 			scene.draw()
 	pyglet.clock.schedule(stage.update)
 
-	pyglet.app.run()
 	def move_camera(dt): # optionally, queue up a camera moving process
 		scene.camera.position.x = scene.meshes[0].position.x - .5
 		scene.camera.position.y = scene.meshes[0].position.y - .1
 		scene.camera.position.z = scene.meshes[0].position.z + .1
 	pyglet.clock.schedule(move_camera)
 
+	pyglet.app.run() # start the viewer!

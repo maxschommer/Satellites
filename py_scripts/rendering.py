@@ -12,7 +12,7 @@ Z_AX_ROTATION = Quaternion(axis=[0,0,1], degrees=90)
 UNIT_SCALE = 9e-4
 VELOCITY_SCALE = .02
 ANGULARV_SCALE = .002
-WIND_SCALE = 2e-7
+WIND_SCALE = 4e-7
 
 
 class Stage():
@@ -28,8 +28,8 @@ class Stage():
 		self.t = 0
 		self.started = False
 
-	def load_resources(self):
 		for actor in self.actors:
+			actor.stage = self
 			actor.load_resources()
 
 	def update(self, dt):
@@ -55,8 +55,10 @@ class Actor():
 		"""
 		self.model = model
 		self.scale = scale
+		self.stage = None
 
 	def load_resources(self, mesh_readers={}):
+		""" Summon the datum that are inconvenient to summon during __init__. """
 		model_directory, model_name = self.model.split("->")
 		if model_directory not in mesh_readers:
 			mesh_readers[model_directory] = rc.WavefrontReader("../Meshes/{}.obj".format(model_directory))
@@ -73,11 +75,16 @@ class Actor():
 class BodyActor(Actor):
 	""" An Actor that represents the physical form of a RigidBody. """
 	def __init__(self, body, model, scale=1):
-		""" body	RigidBody	the body to depict
-			model	str			"{file address of mesh file}->{internal address of mesh form}"
+		""" body	RigidBody or str	the body to depict
+			model	str					"{file address of mesh file}->{internal address of mesh form}"
 		"""
 		super().__init__(model, scale=scale)
 		self.body = body
+
+	def load_resources(self, **kwargs):
+		super().load_resources(**kwargs)
+		if type(self.body) == str:
+			self.body = self.stage.environment.bodies[self.body]
 
 	def update(self, t):
 		position = self.body.get_position(t)
@@ -89,14 +96,19 @@ class BodyActor(Actor):
 class VectorActor(Actor):
 	""" An Actor that represents a vector quantity. """
 	def __init__(self, body, quantity, model, mounting_point=[0,0,0]):
-		""" body		RigidBody	the body posessing the quantity to depict
-			quantity	str			the name of the quantity to depict
-			model		str			"{file address of mesh file}->{internal address of mesh form}"
+		""" body		RigidBody or str	the body posessing the quantity to depict
+			quantity	str				the name of the quantity to depict
+			model		str				"{file address of mesh file}->{internal address of mesh form}"
 		"""
 		super().__init__(model)
 		self.body = body
 		self.quantity = quantity
 		self.mounting_point = np.array(mounting_point)
+
+	def load_resources(self, **kwargs):
+		super().load_resources(**kwargs)
+		if type(self.body) == str:
+			self.body = self.stage.environment.bodies[self.body]
 
 	def update(self, t):
 		position = self.body.get_position(t)
@@ -130,18 +142,25 @@ class VectorActor(Actor):
 class VectorFieldActor(Actor):
 	""" An Actor that represents a vector field. """
 	def __init__(self, field, model, position=[0,0,0]):
-		""" field	3 vector or Table	the vector field to depict
-			model	str					"{file address of mesh file}->{internal address of mesh form}"
+		""" field		3 vector or Table				the vector field to depict
+			model		str								"{file address of mesh file}->{internal address of mesh form}"
+			position	3 vector or RigidBody or str	the place to put the tail of this arrow
 		"""
 		super().__init__(model)
 		self.field = field
 		self.position = position
 
-	def load_resources(self):
-		super().load_resources()
-		self.mesh.position = np.array(self.position) # set the position when you first load the mesh; it won't move
+	def load_resources(self, **kwargs):
+		super().load_resources(**kwargs)
+		if type(self.position) == str:
+			self.position = self.stage.environment.bodies[self.position]
 
 	def update(self, t):
+		if hasattr(self.position, 'get_position'):
+			self.mesh.position = self.position.get_position(t)
+		else:
+			self.mesh.position = self.position
+
 		if hasattr(self.field, 'get_value'):
 			v = self.field.get_value(t)
 		else:

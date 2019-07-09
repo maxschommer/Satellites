@@ -8,7 +8,7 @@ class Impulsor():
 
 	def force_on(self, body, time, position, rotation, velocity, angularv):
 		""" Compute the force applied by this Impulsor on the given body, given the time and that body's state.
-			body:		RigidBody	the body on which this might be acting
+			body:		int			the id of the body on which this might be acting
 			time:		float		the current time
 			position:	3 vector	the current position of body
 			rotation:	Quaternion	the current rotation of body
@@ -20,7 +20,7 @@ class Impulsor():
 
 	def torke_on(self, body, time, position, rotation, velocity, angularv):
 		""" Compute the force applied by this Impulsor on the given body, given the time and that body's state.
-			body:		RigidBody	the body on which this might be acting
+			body:		int			the id of the body body on which this might be acting
 			time:		float		the current time
 			position:	3 vector	the current position of body
 			rotation:	Quaternion	the current rotation of body
@@ -41,7 +41,7 @@ class Magnetorker(Impulsor):
 		self.moment = moment
 
 	def torke_on(self, body, time, position, rotation, velocity, angularv):
-		if body is self.body:
+		if body == self.body:
 			return np.cross(
 				rotation.rotate(self.moment(time)), self.environment.get_magnetic_field(time))
 		else:
@@ -51,8 +51,8 @@ class Magnetorker(Impulsor):
 class MagneticDipole(Magnetorker):
 	""" External torke imparted by a uniform magnetic field on a magnetic body. """
 	def __init__(self, body, dipole_moment):
-		""" body:			RigidBody	the body on which the torke is applied
-			dipole_moment:	3 vector	the magnetic dipole moment of the body in its reference frame
+		""" body:			RigidBody			the body on which the torke is applied
+			dipole_moment:	3 vector			the magnetic dipole moment of the body in its reference frame
 		"""
 		self.moment = np.array(dipole_moment)
 		super().__init__(body, lambda t: self.moment)
@@ -70,13 +70,13 @@ class GimballedThruster(Impulsor):
 		self.thrust = thrust
 
 	def force_on(self, body, time, position, rotation, velocity, angularv):
-		if body is self.body:
+		if body == self.body:
 			return rotation.rotate(self.thrust(time))
 		else:
 			return np.zeros(3)
 
 	def torke_on(self, body, time, position, rotation, velocity, angularv):
-		if body is self.body:
+		if body == self.body:
 			return rotation.rotate(np.cross(self.lever_arm, self.thrust(time)))
 		else:
 			return np.zeros(3)
@@ -96,25 +96,18 @@ class Thruster(GimballedThruster):
 
 class Drag(Impulsor):
 	""" External force and torke imparted by collision with the atmosphere. """
-	def __init__(self, body, area, cp_position):
-		""" body:			RigidBody	the body experiencing the drag
-			lever_arm:		3 vector	the thruster's position on the body
-			area:			float		the effective area of the body with the drag coefficient multiplied in
-			cp_position:	3 vector	the position of the centre of pressure in the body frame
-		""" # TODO: account for orientation-dependent cD and cP
-		self.body = body
+	def __init__(self, area, cp_position):
+		""" lever_arm:		3 vector		the thruster's position on the body
+			area:			float			the effective area of the body with the drag coefficient multiplied in
+			cp_position:	3 vector		the position of the centre of pressure in the body frame
+		""" # TODO: account for orientation- and body-dependent cD and cP
 		self.area = area
-		self.cp_position = cp_position - body.cm_position
+		self.cp_position = np.array(cp_position)
 
 	def force_on(self, body, time, position, rotation, velocity, angularv):
-		if body is self.body:
-			velocity = self.environment.get_air_velocity(time)
-			return 1/2*self.area*self.environment.get_air_density(time)*np.linalg.norm(velocity)*velocity
-		else:
-			return np.zeros(3)
+		velocity = self.environment.get_air_velocity(time)
+		return 1/2*self.area*self.environment.get_air_density(time)*np.linalg.norm(velocity)*velocity
 
 	def torke_on(self, body, time, position, rotation, velocity, angularv):
-		if body is self.body:
-			return np.cross(rotation.rotate(self.cp_position), self.force_on(body, time, position, rotation, velocity, angularv))
-		else:
-			return np.zeros(3)
+		return 1e3*np.cross(rotation.rotate(self.cp_position), self.force_on(body, time, position, rotation, velocity, angularv)) -\
+			1/2*self.area**(2.5)*self.environment.get_air_density(time)*np.linalg.norm(angularv)*angularv # combine torque due to offset center of pressure and against to rotation of body
