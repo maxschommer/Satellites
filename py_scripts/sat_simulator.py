@@ -4,13 +4,12 @@ import pickle
 import ratcave as rc
 
 from constraint import Hinge
-from control import Magnetostabilisation
 from event import Launch
 from gmat_integration import MagneticTable, SunTable, VelocityTable, AtmosphericTable
 from locomotion import MagneticDipole, Magnetorker, Thruster, GimballedThruster, Drag
 import matplotlib.pyplot as plt
 from physics import Environment, RigidBody
-from sensor import Photodiode, Magnetometer
+from sensor import Photodiode, Magnetometer, Magnetostabilisation
 
 
 FILENAME = 'stabl0.pkl' # place to save
