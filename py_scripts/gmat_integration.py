@@ -41,9 +41,9 @@ class VelocityTable(Table):
 		i = self.table.ElapsedSecs.searchsorted(t) - 1 # get the next event
 		t0 = self.table.iloc[i].ElapsedSecs # and the last one
 		t1 = self.table.iloc[i+1].ElapsedSecs
-		v0 = np.array([self.table.iloc[i].VX,   self.table.iloc[i].VY,   self.table.iloc[i].VZ])
-		v1 = np.array([self.table.iloc[i+1].VX, self.table.iloc[i+1].VY, self.table.iloc[i+1].VZ])
-		return -1e3*((t - t0)/(t1 - t0)*(v1 - v0) + v0) # and commit linear interpolation (negate because we want air velocity, not satellite velocity)
+		v0 = np.array(self.table.iloc[i][['VX', 'VY', 'VZ']])
+		v1 = np.array(self.table.iloc[i+1][['VX', 'VY', 'VZ']])
+		return -((t - t0)/(t1 - t0)*(v1 - v0) + v0)*1e+3 # and commit linear interpolation (negate because we want air velocity, not satellite velocity)
 
 
 class AtmosphericTable(Table):
@@ -59,3 +59,21 @@ class AtmosphericTable(Table):
 		ρ0 = self.table.iloc[i].AtmosDensity
 		ρ1 = self.table.iloc[i+1].AtmosDensity
 		return 1e-9*((t - t0)/(t1 - t0)*(ρ1 - ρ0) + ρ0) # and commit linear interpolation (negate because we want air velocity, not satellite velocity)
+
+
+class MagneticTable(Table):
+	""" An object to read GMAT reports and thus estimaet the magnetic field of the Earth. """
+	def __init__(self, filename, B_earth=3.12e-5, R_earth=6370e+3, axis=[0,0,-1]):
+		self.table = pd.read_csv(filename, sep=r'\s\s+', engine='python')
+		self.table = self.table.rename(lambda s: s.split('.')[-1], axis='columns')
+		self.B_0 = B_earth*np.array(axis)
+		self.R_E = R_earth
+
+	def get_value(self, t):
+		i = self.table.ElapsedSecs.searchsorted(t) - 1 # find the next event
+		t0 = self.table.iloc[i].ElapsedSecs # and the last one
+		t1 = self.table.iloc[i+1].ElapsedSecs
+		r0 = np.array(self.table.iloc[i][['X', 'Y', 'Z']])
+		r1 = np.array(self.table.iloc[i+1][['X', 'Y', 'Z']])
+		r = ((t - t0)/(t1 - t0)*(r1 - r0) + r0)*1e+3 # and commit linear interpolation
+		return -(3*r*np.dot(self.B_0, r)/np.linalg.norm(r)**2 - self.B_0)*(self.R_E/np.linalg.norm(r))**3 # and use a dipole approximation

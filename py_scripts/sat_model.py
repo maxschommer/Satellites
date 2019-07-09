@@ -6,7 +6,7 @@ import ratcave as rc
 from constraint import Hinge
 from control import Magnetostabilisation
 from event import Launch
-from gmat_integration import SunTable, VelocityTable, AtmosphericTable
+from gmat_integration import MagneticTable, SunTable, VelocityTable, AtmosphericTable
 from locomotion import MagneticDipole, Magnetorker, Thruster, GimballedThruster, Drag
 import matplotlib.pyplot as plt
 from physics import Environment, RigidBody

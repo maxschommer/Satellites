@@ -52,7 +52,12 @@ if __name__ == '__main__':
 	def on_draw():
 		with rc.default_shader:
 			scene.draw()
-
 	pyglet.clock.schedule(stage.update)
 
 	pyglet.app.run()
+	def move_camera(dt): # optionally, queue up a camera moving process
+		scene.camera.position.x = scene.meshes[0].position.x - .5
+		scene.camera.position.y = scene.meshes[0].position.y - .1
+		scene.camera.position.z = scene.meshes[0].position.z + .1
+	pyglet.clock.schedule(move_camera)
+
