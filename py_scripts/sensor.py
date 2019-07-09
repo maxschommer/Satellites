@@ -35,17 +35,20 @@ class Sensor:
 
 class Photodiode(Sensor):
 	""" A daylight detector. """
+	SUN_SIZE = np.radians(.5)
 	def __init__(self, body, direction):
 		""" body:		RigidBody	the body to which this is mounted
 			direction:	3 vector	the direction this diode faces (it cannot detect light coming from any other direction)
 		"""
 		self.body = body
-		self.direction = np.array(direction)
+		self.direction = np.array(direction)/np.linalg.norm(direction)
 
 	def reading(self, time, positions, rotations, velocitys, angularvs):
-		if np.dot(rotations[self.body.body_num].rotate(self.direction), self.environment.get_solar_flux(time)) < 0:
-			return np.linalg.norm(self.environment.get_solar_flux(time))
-		else:
+		solar_flux = self.environment.get_solar_flux(time)
+		angle = np.arccos(np.dot(rotations[self.body.body_num].rotate(self.direction), solar_flux/np.linalg.norm(solar_flux)))
+		if angle < np.pi/2 - SUN_SIZE/2:
+			return np.linalg.norm(solar_flux)
+		else angle > np.pi/2 + SUN_SIZE/2:
 			return 0
 
 
