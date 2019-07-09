@@ -77,5 +77,5 @@ if __name__ == '__main__':
 
 	environment.shell() # strip away the unpicklable parts
 
-	with open("../saves/{}".format(FILENAME), 'wb') as f: # save the simulation with pickle
+	with open("../simulations/{}".format(FILENAME), 'wb') as f: # save the simulation with pickle
 		pickle.dump(environment, f)

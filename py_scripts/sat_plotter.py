@@ -10,7 +10,7 @@ FILENAME = 'stabl0.pkl'
 
 
 if __name__ == '__main__':
-	with open('../saves/{}'.format(FILENAME), 'rb') as f:
+	with open('../simulations/{}'.format(FILENAME), 'rb') as f:
 		environment = pickle.load(f)
 
 	T = np.linspace(0, environment.max_t, 100)

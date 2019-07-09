@@ -24,7 +24,7 @@ def look_at(target, source=[0, 0, -1], roll=0):
 
 
 if __name__ == '__main__':
-	with open('../saves/{}'.format(FILENAME), 'rb') as f: # load the desired save
+	with open('../simulations/{}'.format(FILENAME), 'rb') as f: # load the desired save
 		environment = pickle.load(f)
 
 	stage = Stage([ # construct the stage with which to render the simulation
