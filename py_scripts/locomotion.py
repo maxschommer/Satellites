@@ -96,18 +96,21 @@ class Thruster(GimballedThruster):
 
 class Drag(Impulsor):
 	""" External force and torke imparted by collision with the atmosphere. """
-	def __init__(self, area, cp_position):
-		""" lever_arm:		3 vector		the thruster's position on the body
-			area:			float			the effective area of the body with the drag coefficient multiplied in
-			cp_position:	3 vector		the position of the centre of pressure in the body frame
-		""" # TODO: account for orientation- and body-dependent cD and cP
-		self.area = area
-		self.cp_position = np.array(cp_position)
+	def __init__(self, areas, cp_positions):
+		""" cp_positions:	3 vector		the thruster's position on the body
+			areas:			[float]			the effective area of the body with the drag coefficient multiplied in
+			cp_position:	[3 vector]		the position of the centre of pressure in the body frame
+		""" # TODO: account for orientation-dependent cD and cP
+		self.areas = areas
+		self.cp_positions = np.array(cp_positions)
 
 	def force_on(self, body, time, position, rotation, velocity, angularv):
 		velocity = self.environment.get_air_velocity(time)
-		return 1/2*self.area*self.environment.get_air_density(time)*np.linalg.norm(velocity)*velocity
+		area = self.areas[body if type(body) is int else body.num]
+		return 1/2*area*self.environment.get_air_density(time)*np.linalg.norm(velocity)*velocity
 
 	def torke_on(self, body, time, position, rotation, velocity, angularv):
-		return 1e3*np.cross(rotation.rotate(self.cp_position), self.force_on(body, time, position, rotation, velocity, angularv)) -\
-			1/2*self.area**(2.5)*self.environment.get_air_density(time)*np.linalg.norm(angularv)*angularv # combine torque due to offset center of pressure and against to rotation of body
+		area = self.areas[body if type(body) is int else body.num]
+		cp_position = self.cp_positions[body if type(body) is int else body.num]
+		return 1e3*np.cross(rotation.rotate(cp_position), self.force_on(body, time, position, rotation, velocity, angularv)) -\
+			1/2*area**(2.5)*self.environment.get_air_density(time)*np.linalg.norm(angularv)*angularv # combine torque due to offset center of pressure and against to rotation of body

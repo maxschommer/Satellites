@@ -61,7 +61,7 @@ if __name__ == '__main__':
 		]
 		external_impulsors = [
 			Magnetorker(bodies['satellites'], Magnetostabilisation(sensors['magnet'], max_moment=.02, axes=[1,1,0])),
-			Drag(.003, [.01,0,0]),
+			Drag([.003], [[0,0,0]]),
 			# Thruster(bodies['left_sat'], [0, .05,0], [-1, 0, 0], lambda t: [.001,0,-.001,-.001,0,.001][int(t)%6]),
 			# Thruster(bodies['left_sat'], [0,-.05,0], [ 1, 0, 0], lambda t: [.001,0,-.001,-.001,0,.001][int(t)%6]),
 		]
@@ -78,7 +78,7 @@ if __name__ == '__main__':
 		)
 
 		print("solving...")
-		environment.solve(0, 180*60, method='LSODA') # run the simulation
+		environment.solve(0, 1*60, method='LSODA') # run the simulation
 		
 		print("saving...")
 		environment.shell() # strip away the unpicklable parts
