@@ -1,7 +1,6 @@
 import sklearn
 import numpy as np
 import pickle
-from pympler import asizeof
 import ratcave as rc
 
 from constraint import Hinge
@@ -84,8 +83,6 @@ if __name__ == '__main__':
 		print("saving...")
 		environment.shell() # strip away the unpicklable parts
 		while True:
-			for key, var in vars(environment).items():
-				print("{:20s} | {: 10d}".format(key, asizeof.asizeof(var)))
 			try:
 				with open("../simulations/{}".format(FILENAME), 'wb') as f: # save the simulation with pickle
 					pickle.dump(environment, f, protocol=4)
