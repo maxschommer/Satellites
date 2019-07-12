@@ -1,6 +1,7 @@
 import sklearn
 import numpy as np
 import pickle
+from pympler import asizeof
 import ratcave as rc
 
 from constraint import Hinge
@@ -12,7 +13,7 @@ from physics import Environment, RigidBody
 from sensor import Photodiode, Magnetometer, Magnetostabilisation
 
 
-FILENAME = 'stabl0.pkl' # place to save
+FILENAME = 'stabl{}.pkl' # place to save
 
 WINDOW_WIDTH = 800 # window properties
 WINDOW_HEIGHT = 600
@@ -28,54 +29,68 @@ I_3 = [[3.166e-4, 7.726e-6, 1.088e-6],
 m_3 = .318 # kg
 cm_3 = [-1.4e-3, 1.0e-3, -2.2e-3] # m
 
-np.random.seed(0) # make it reproduceable 
 
 
 if __name__ == '__main__':
-	q0 = np.random.randn(4) # pick some initial conditions
-	q0 = q0/np.linalg.norm(q0)
-	v0 = [1, 0, 0] # m/s
-	ω0 = np.random.normal(0., 1., 3)
+	for i in range(3, 5):
+		print("setting up {}".format(i))
+		FILENAME = 'stabl{}.pkl'.format(i)
+		np.random.seed(i) # make it reproduceable 
 
-	bodies = { # declare all of the things
-		# 'left_sat':  RigidBody(I_1, m_1, cm_1, init_position=[0,0, .01], init_angularv=[0,0,0], init_rotation=[1,0,0,0]),
-		# 'center_sat':RigidBody(I_1, m_1, cm_1, init_position=[0,0,0], init_angularv=[0,0,0], init_rotation=[0,0,1,0]),
-		# 'right_sat': RigidBody(I_1, m_1, cm_1, init_position=[0,0,-.01], init_angularv=[0,0,0], init_rotation=[1,0,0,0]),
-		# 'acetone':   RigidBody(1.25e-7*np.identity(3), 5e-3, [0,0,0]),
-		'satellites':RigidBody(I_3, m_3, cm_3, init_angularv=ω0, init_rotation=q0),
-	}
-	sensors = {
-		'photo_0':Photodiode(bodies['satellites'], [0, 0, 1]),
-		'photo_1':Photodiode(bodies['satellites'], [0, 1, 0]),
-		'photo_2':Photodiode(bodies['satellites'], [0, 0,-1]),
-		'photo_3':Photodiode(bodies['satellites'], [0,-1, 0]),
-		'magnet':Magnetometer(bodies['satellites']),
-	}
-	constraints = [
-		# Hinge(bodies['left_sat'],  bodies['center_sat'], [-.05,0,-.005], [.05,0,-.005], [0,1,0], [0,1,0]),
-		# Hinge(bodies['center_sat'], bodies['right_sat'], [-.05,0, .005], [.05,0, .005], [0,1,0], [0,1,0]),
-	]
-	external_impulsors = [
-		Magnetorker(bodies['satellites'], Magnetostabilisation(sensors['magnet'], max_moment=.02, axes=[1,1,0])),
-		Drag(.003, [0,0,0]),
-		# Thruster(bodies['left_sat'], [0, .05,0], [-1, 0, 0], lambda t: [.001,0,-.001,-.001,0,.001][int(t)%6]),
-		# Thruster(bodies['left_sat'], [0,-.05,0], [ 1, 0, 0], lambda t: [.001,0,-.001,-.001,0,.001][int(t)%6]),
-	]
-	events = [
-		# Launch(3, bodies['center_sat'], bodies['acetone'], [0,0,0], [0,-.003,.5], [0,12.6,0])
-	]
+		q0 = np.random.randn(4) # pick some initial conditions
+		q0 = q0/np.linalg.norm(q0)
+		v0 = [1, 0, 0] # m/s
+		ω0 = np.random.normal(0., 1., 3)
 
-	environment = Environment( # put them together in an Environment
-		bodies, sensors, constraints, external_impulsors, events,
-		magnetic_field=MagneticTable("../gmat_scripts/ReportFile1.txt"), # T
-		solar_flux=SunTable("../gmat_scripts/sunrise_sunset_table.txt"), # W/m^2
-		air_velocity=VelocityTable("../gmat_scripts/ReportFile1.txt"), # m/s
-		air_density=AtmosphericTable("../gmat_scripts/ReportFile1.txt"), # kg/m^3
-	)
+		bodies = { # declare all of the things
+			# 'left_sat':  RigidBody(I_1, m_1, cm_1, init_position=[0,0, .01], init_angularv=[0,0,0], init_rotation=[1,0,0,0]),
+			# 'center_sat':RigidBody(I_1, m_1, cm_1, init_position=[0,0,0], init_angularv=[0,0,0], init_rotation=[0,0,1,0]),
+			# 'right_sat': RigidBody(I_1, m_1, cm_1, init_position=[0,0,-.01], init_angularv=[0,0,0], init_rotation=[1,0,0,0]),
+			# 'acetone':   RigidBody(1.25e-7*np.identity(3), 5e-3, [0,0,0]),
+			'satellites':RigidBody(I_3, m_3, cm_3, init_angularv=ω0, init_rotation=q0),
+		}
+		sensors = {
+			'photo_0':Photodiode(bodies['satellites'], [0, 0, 1]),
+			'photo_1':Photodiode(bodies['satellites'], [0, 1, 0]),
+			'photo_2':Photodiode(bodies['satellites'], [0, 0,-1]),
+			'photo_3':Photodiode(bodies['satellites'], [0,-1, 0]),
+			'magnet':Magnetometer(bodies['satellites']),
+		}
+		constraints = [
+			# Hinge(bodies['left_sat'],  bodies['center_sat'], [-.05,0,-.005], [.05,0,-.005], [0,1,0], [0,1,0]),
+			# Hinge(bodies['center_sat'], bodies['right_sat'], [-.05,0, .005], [.05,0, .005], [0,1,0], [0,1,0]),
+		]
+		external_impulsors = [
+			Magnetorker(bodies['satellites'], Magnetostabilisation(sensors['magnet'], max_moment=.02, axes=[1,1,0])),
+			Drag(.003, [.01,0,0]),
+			# Thruster(bodies['left_sat'], [0, .05,0], [-1, 0, 0], lambda t: [.001,0,-.001,-.001,0,.001][int(t)%6]),
+			# Thruster(bodies['left_sat'], [0,-.05,0], [ 1, 0, 0], lambda t: [.001,0,-.001,-.001,0,.001][int(t)%6]),
+		]
+		events = [
+			# Launch(3, bodies['center_sat'], bodies['acetone'], [0,0,0], [0,-.003,.5], [0,12.6,0])
+		]
 
-	environment.solve(0, 180*60, method='LSODA') # run the simulation
+		environment = Environment( # put them together in an Environment
+			bodies, sensors, constraints, external_impulsors, events,
+			magnetic_field=MagneticTable("../gmat_scripts/ReportFile1.txt"), # T
+			solar_flux=SunTable("../gmat_scripts/sunrise_sunset_table.txt"), # W/m^2
+			air_velocity=VelocityTable("../gmat_scripts/ReportFile1.txt"), # m/s
+			air_density=AtmosphericTable("../gmat_scripts/ReportFile1.txt"), # kg/m^3
+		)
 
-	environment.shell() # strip away the unpicklable parts
-
-	with open("../simulations/{}".format(FILENAME), 'wb') as f: # save the simulation with pickle
-		pickle.dump(environment, f)
+		print("solving...")
+		environment.solve(0, 180*60, method='LSODA') # run the simulation
+		
+		print("saving...")
+		environment.shell() # strip away the unpicklable parts
+		while True:
+			for key, var in vars(environment).items():
+				print("{:20s} | {: 10d}".format(key, asizeof.asizeof(var)))
+			try:
+				with open("../simulations/{}".format(FILENAME), 'wb') as f: # save the simulation with pickle
+					pickle.dump(environment, f, protocol=4)
+			except MemoryError:
+				print("reducing...")
+				environment.reduce()
+			else:
+				break

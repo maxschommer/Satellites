@@ -1,3 +1,4 @@
+from collections import OrderedDict
 import numpy as np
 import pandas as pd
 
@@ -12,19 +13,33 @@ import pandas as pd
 
 class Table:
 	""" An object that yields values at different times. """
+	def __init__(self):
+		self.mem = OrderedDict()
+
 	def get_value(self, t):
 		""" Return the value at this time. """
+		if t in self.mem:
+			return self.mem[t]
+		else:
+			self.mem[t] = self._value(t)
+			if len(self.mem) > 6:
+				self.mem.popitem(last=False)
+			return self.mem[t]
+
+	def _value(self, t):
+		""" The part of get_value that the subclasses can override. """
 		raise NotImplementedError("Subclasses should override.")
 
 
 class SunTable(Table):
 	""" An object to read sunwend tables and thus estimate the solar flux vector. """
 	def __init__(self, filename, solar_constant=1.361e+3*np.array([0, -1, 0])):
-		self.table = pd.read_csv(filename, sep='   ', names=['timestamp', 'time', 'type'], engine='python')
+		super().__init__()
+		self.table = pd.read_csv(filename, sep='   ', names=['timestamp', 'ElapsedSecs', 'type'], engine='python')
 		self.solar_constant = solar_constant
 
-	def get_value(self, t):
-		next_wend = self.table.iloc[self.table.time.searchsorted(t)] # get the first event after this time
+	def _value(self, t):
+		next_wend = self.table.iloc[self.table.ElapsedSecs.searchsorted(t)] # get the first event after this time
 		if next_wend.type == "Sunset": # if the sun is going down
 			return self.solar_constant # it must be up now
 		else: # otherwise
@@ -34,10 +49,11 @@ class SunTable(Table):
 class VelocityTable(Table):
 	""" An object to read GMAT reports and thus estimate the relative air speed. """
 	def __init__(self, filename):
+		super().__init__()
 		self.table = pd.read_csv(filename, sep=r'\s\s+', engine='python')
 		self.table = self.table.rename(lambda s: s.split('.')[-1], axis='columns')
 
-	def get_value(self, t):
+	def _value(self, t):
 		i = self.table.ElapsedSecs.searchsorted(t) - 1 # get the next event
 		t0 = self.table.iloc[i].ElapsedSecs # and the last one
 		t1 = self.table.iloc[i+1].ElapsedSecs
@@ -49,10 +65,11 @@ class VelocityTable(Table):
 class AtmosphericTable(Table):
 	""" An object to read GMAT reports and thus estimaet the air density. """
 	def __init__(self, filename):
+		super().__init__()
 		self.table = pd.read_csv(filename, sep=r'\s\s+', engine='python')
 		self.table = self.table.rename(lambda s: s.split('.')[-1], axis='columns')
 
-	def get_value(self, t):
+	def _value(self, t):
 		i = self.table.ElapsedSecs.searchsorted(t) - 1 # find the next event
 		t0 = self.table.iloc[i].ElapsedSecs # and the last one
 		t1 = self.table.iloc[i+1].ElapsedSecs
@@ -64,12 +81,13 @@ class AtmosphericTable(Table):
 class MagneticTable(Table):
 	""" An object to read GMAT reports and thus estimaet the magnetic field of the Earth. """
 	def __init__(self, filename, B_earth=3.12e-5, R_earth=6370e+3, axis=[0,0,-1]):
+		super().__init__()
 		self.table = pd.read_csv(filename, sep=r'\s\s+', engine='python')
 		self.table = self.table.rename(lambda s: s.split('.')[-1], axis='columns')
 		self.B_0 = B_earth*np.array(axis)
 		self.R_E = R_earth
 
-	def get_value(self, t):
+	def _value(self, t):
 		i = self.table.ElapsedSecs.searchsorted(t) - 1 # find the next event
 		t0 = self.table.iloc[i].ElapsedSecs # and the last one
 		t1 = self.table.iloc[i+1].ElapsedSecs

@@ -185,39 +185,27 @@ class Environment():
 
 		return reaction_forces_torkes
 
-	def get_magnetic_field(self, t, mem={}):
-		if t in mem:
-			return mem[t]
-		elif hasattr(self.magnetic_field, 'get_value'):
-			mem[t] = self.magnetic_field.get_value(t)
-			return mem[t]
+	def get_magnetic_field(self, t):
+		if hasattr(self.magnetic_field, 'get_value'):
+			return self.magnetic_field.get_value(t)
 		else:
 			return self.magnetic_field
 
-	def get_solar_flux(self, t, mem={}):
-		if t in mem:
-			return mem[t]
-		elif hasattr(self.solar_flux, 'get_value'):
-			mem[t] = self.solar_flux.get_value(t)
-			return mem[t]
+	def get_solar_flux(self, t):
+		if hasattr(self.solar_flux, 'get_value'):
+			return self.solar_flux.get_value(t)
 		else:
 			return self.solar_flux
 
-	def get_air_velocity(self, t, mem={}):
-		if t in mem:
-			return mem[t]
-		elif hasattr(self.air_velocity, 'get_value'):
-			mem[t] = self.air_velocity.get_value(t)
-			return mem[t]
+	def get_air_velocity(self, t):
+		if hasattr(self.air_velocity, 'get_value'):
+			return self.air_velocity.get_value(t)
 		else:
 			return self.air_velocity
 
-	def get_air_density(self, t, mem={}):
-		if t in mem:
-			return mem[t]
-		elif hasattr(self.air_density, 'get_value'):
-			mem[t] = self.air_density.get_value(t)
-			return mem[t]
+	def get_air_density(self, t):
+		if hasattr(self.air_density, 'get_value'):
+			return self.air_density.get_value(t)
 		else:
 			return self.air_density
 
@@ -226,6 +214,14 @@ class Environment():
 		self.constraints = None
 		self.external_impulsors = None
 		self.events = None
+
+	def reduce(self):
+		""" Approximate the solution to make it fit in a jar. """
+		ts = self.solution.ts[::2]
+		interps = self.solution.interpolants[::2]
+		while len(interps) >= len(ts):
+			interps.pop()
+		self.solution = OdeSolution(ts, interps)
 
 
 class RigidBody():
