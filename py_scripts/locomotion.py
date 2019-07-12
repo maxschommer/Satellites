@@ -48,14 +48,13 @@ class Magnetorker(Impulsor):
 			return np.zeros(3)
 
 
-class MagneticDipole(Magnetorker):
-	""" External torke imparted by a uniform magnetic field on a magnetic body. """
+class PermanentMagnet(Magnetorker):
+	""" External torke imparted by a uniform magnetic field on a magnetic dipole. """
 	def __init__(self, body, dipole_moment):
 		""" body:			RigidBody			the body on which the torke is applied
 			dipole_moment:	3 vector			the magnetic dipole moment of the body in its reference frame
 		"""
-		self.moment = np.array(dipole_moment)
-		super().__init__(body, lambda t: self.moment)
+		super().__init__(body, lambda t: dipole_moment)
 
 
 class GimballedThruster(Impulsor):

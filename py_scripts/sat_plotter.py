@@ -42,12 +42,12 @@ if __name__ == '__main__':
 
 	order = np.argsort(Es[:,0])
 
-	plt.figure()
-	plt.title("Energy decay")
-	for z, i in enumerate(order):
-		plt.semilogy(T/3600, Es[i,:], linewidth=.7, zorder=10-z)
-	plt.ylabel("Rotational energy (J)")
-	plt.xlabel("Time (hr)")
+	# plt.figure()
+	# plt.title("Energy decay")
+	# for z, i in enumerate(order):
+	# 	plt.semilogy(T/3600, Es[i,:], linewidth=.7, zorder=10-z)
+	# plt.ylabel("Rotational energy (J)")
+	# plt.xlabel("Time (hr)")
 
 	plt.figure()
 	plt.title("Rotational deceleration")

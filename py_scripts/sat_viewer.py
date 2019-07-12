@@ -11,7 +11,7 @@ from rendering import Stage, BodyActor, VectorActor, VectorFieldActor
 WINDOW_WIDTH = 800
 WINDOW_HEIGHT = 600
 
-FILENAME = 'stabl2.pkl'
+FILENAME = 'orient-16-00.pkl'
 
 
 def look_at(target, source=[0, 0, -1], roll=0):
@@ -27,7 +27,6 @@ if __name__ == '__main__':
 	with open('../simulations/{}'.format(FILENAME), 'rb') as f: # load the desired save
 		environment = pickle.load(f)
 
-	environment.max_t = 2*60*60
 	stage = Stage([ # construct the stage with which to render the simulation
 		# BodyActor('left_sat', "ThinSatFrame->Frame"),
 		# BodyActor('center_sat', "ThinSatFrame->Frame"),
@@ -39,7 +38,7 @@ if __name__ == '__main__':
 		# VectorActor('right_sat', "angularv", "Resources/arrow->Arrow"),
 		VectorActor('satellites', "angularv", "Resources/arrow->Arrow"),
 		# VectorFieldActor(environment.air_velocity, "Resources/arrow->Arrow", 'satellites'),
-	], environment, speed=300)
+	], environment, speed=1)
 
 	scene = rc.Scene( # build the ratcave scene
 		meshes=[a.mesh for a in stage.actors],
