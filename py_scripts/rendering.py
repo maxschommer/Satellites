@@ -12,7 +12,6 @@ Z_AX_ROTATION = Quaternion(axis=[0,0,1], degrees=90)
 UNIT_SCALE = 9e-4
 VELOCITY_SCALE = .02
 ANGULARV_SCALE = .002
-WIND_SCALE = 4e-7
 
 
 class Stage():
@@ -149,6 +148,8 @@ class VectorFieldActor(Actor):
 		super().__init__(model)
 		self.field = field
 		self.position = position
+		v0 = field.get_value(0) if hasattr(field, 'get_value') else field
+		self.unit = UNIT_SCALE/np.linalg.norm(v0)
 
 	def load_resources(self, **kwargs):
 		super().load_resources(**kwargs)
@@ -161,15 +162,13 @@ class VectorFieldActor(Actor):
 		else:
 			self.mesh.position = self.position
 
-		if hasattr(self.field, 'get_value'):
-			v = self.field.get_value(t)
-		else:
-			v = self.field
+		v = self.field.get_value(t) if hasattr(self.field, 'get_value') else self.field
+
 		if v[0] == 0 and v[2] == 0:
 			assign_wxyz(self.mesh.rotation, [1,0,0,0] if ω[1] > 0 else [0,1,0,0])
 		else:
 			assign_wxyz(self.mesh.rotation, Quaternion(axis=[v[2],0,-v[0]], angle=np.arccos(v[1]/np.linalg.norm(v))))
-		self.mesh.scale.y = max(1e-6, WIND_SCALE*np.linalg.norm(v))
+		self.mesh.scale.y = max(1e-6, self.unit*np.linalg.norm(v))
 
 
 def assign_wxyz(ratcave_garbage, actual_quaternion):

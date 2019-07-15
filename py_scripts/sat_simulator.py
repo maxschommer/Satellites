@@ -18,26 +18,27 @@ WINDOW_WIDTH = 800 # window properties
 WINDOW_HEIGHT = 600
 
 I_1 = [[9.759e-5,  -4.039e-6, -1.060e-7], # mass properties
-	 [-4.039e-6,  7.858e-5,  7.820e-9],
-	 [ -1.060e-7, 7.820e-9,  1.743e-4]] # kg*m^2
+       [-4.039e-6,  7.858e-5,  7.820e-9],
+       [ -1.060e-7, 7.820e-9,  1.743e-4]] # kg*m^2
 m_1 = 0.05223934 # kg
 cm_1 = [0.00215328, -0.00860001, -0.00038142] # m
-I_3 = [[3.166e-4, 7.726e-6, 1.088e-6],
-	 [7.726e-6, 2.362e-3,-1.253e-6],
-	 [1.088e-6,-1.253e-6, 2.675e-3]] # kg*m^2
-m_3 = .318 # kg
-cm_3 = [-1.4e-3, 1.0e-3, -2.2e-3] # m
+
+I_3 = [[ 445.e-6,   37.e-6,   23.e-6],
+       [  37.e-6, 4119.e-6,    1.e-6],
+       [  23.e-6,    1.e-6, 4555.e-6]] # kg*m^2
+m_3 = .529 # kg
+cm_3 = [-19.43e-3,-0.65e-3,-0.76e-3] # m
 
 
 if __name__ == '__main__':
-	for moment in [0, .005, .02, .08]:
-		print("m = {:3.1f} mA m^2".format(moment/1e-3))
-		for i in range(1):
+	for drag_coef in [1, .1, .01, 10]: # A*m^2
+		print("c_D = {:.0e} mA m^2".format(drag_coef))
+		for seed in range(0, 3):
 			print("	i = {:02d}".format(i))
 			print("		setting up environment...")
 
-			FILENAME = 'orient-{:02d}-{:02d}.pkl'.format(int(moment*200), i)
-			np.random.seed(i) # make it reproduceable 
+			FILENAME = 'orient-{:.0e}-{:01d}.pkl'.format(drag_coef, seed)
+			np.random.seed(seed) # make it reproduceable 
 
 			q0 = np.random.randn(4) # pick some initial conditions
 			q0 = q0/np.linalg.norm(q0)
@@ -48,14 +49,15 @@ if __name__ == '__main__':
 				# 'left_sat':  RigidBody(I_1, m_1, cm_1, init_position=[0,0, .01], init_angularv=[0,0,0], init_rotation=[1,0,0,0]),
 				# 'center_sat':RigidBody(I_1, m_1, cm_1, init_position=[0,0,0], init_angularv=[0,0,0], init_rotation=[0,0,1,0]),
 				# 'right_sat': RigidBody(I_1, m_1, cm_1, init_position=[0,0,-.01], init_angularv=[0,0,0], init_rotation=[1,0,0,0]),
-				# 'acetone':   RigidBody(1.25e-7*np.identity(3), 5e-3, [0,0,0]),
+				# 'vapor':     RigidBody(1.25e-7*np.identity(3), 5e-3, [0,0,0]),
+				# 'dipole':    RigidBody([[1.981e-9,0,0],[.013e-9,0,0],[1.981e-9,0,0]], 1.053e-4, )
 				'satellites':RigidBody(I_3, m_3, cm_3, init_angularv=ω0, init_rotation=q0),
 			}
 			sensors = {
-				'photo_0':Photodiode(bodies['satellites'], [0, 0, 1]),
-				'photo_1':Photodiode(bodies['satellites'], [0, 1, 0]),
-				'photo_2':Photodiode(bodies['satellites'], [0, 0,-1]),
-				'photo_3':Photodiode(bodies['satellites'], [0,-1, 0]),
+				# 'photo_0':Photodiode(bodies['satellites'], [0, 0, 1]),
+				# 'photo_1':Photodiode(bodies['satellites'], [0, 1, 0]),
+				# 'photo_2':Photodiode(bodies['satellites'], [0, 0,-1]),
+				# 'photo_3':Photodiode(bodies['satellites'], [0,-1, 0]),
 				'magnet':Magnetometer(bodies['satellites']),
 			}
 			constraints = [
@@ -64,13 +66,15 @@ if __name__ == '__main__':
 			]
 			external_impulsors = [
 				Magnetorker(bodies['satellites'], Magnetostabilisation(sensors['magnet'], max_moment=.02, axes=[1,1,1])),
-				PermanentMagnet(bodies['satellites'], [0, 0, moment]),
-				Drag([.003], [[0,0,0]]),
+				# PermanentMagnet(bodies['satellites'], [0, 0, moment]),
+				Drag(bodies, [drag_coef*.1*.01], [[0,0,0]]),
 				# Thruster(bodies['left_sat'], [0, .05,0], [-1, 0, 0], lambda t: [.001,0,-.001,-.001,0,.001][int(t)%6]),
 				# Thruster(bodies['left_sat'], [0,-.05,0], [ 1, 0, 0], lambda t: [.001,0,-.001,-.001,0,.001][int(t)%6]),
 			]
 			events = [
-				# Launch(3, bodies['center_sat'], bodies['acetone'], [0,0,0], [0,-.003,.5], [0,12.6,0])
+				# Launch(20000+1*i, bodies['satellites'], bodies['dipole'], [.02,-.040+.008*i,0], [0,0,.6], [63.,0,0]) for i in range(10),
+				# Launch(30000, bodies['satellites'], bodies['vapor'], [0,0,0], [0,0,.1], [0,0,0]),
+				# Launch(35000, bodies['satellites'], bodies['vapor'], [0,0,0], [0,0,.1], [0,0,0]),
 			]
 
 			environment = Environment( # put them together in an Environment
@@ -84,7 +88,7 @@ if __name__ == '__main__':
 			print("		solving...")
 			environment.solve(0, 180*60, method='LSODA') # run the simulation
 			
-			print("		saving...")
+			print("		saving as {}...".format(FILENAME))
 			environment.shell() # strip away the unpicklable parts
 			while True:
 				try:

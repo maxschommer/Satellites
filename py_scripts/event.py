@@ -42,6 +42,7 @@ class Launch(Event):
 		return self.time - t
 
 	def happen(self):
+		print("		launch!")
 		launcher_velocity = self.launcher.momentum/self.launcher.m
 		launcher_angularv = self.launcher.rotation.rotate(np.matmul(self.launcher.I_inv, self.launcher.rotation.inverse.rotate(self.launcher.angularm)))
 		self.payload.position = self.launcher.position + self.launcher.rotation.rotate(self.launch_position)

@@ -95,13 +95,13 @@ class Thruster(GimballedThruster):
 
 class Drag(Impulsor):
 	""" External force and torke imparted by collision with the atmosphere. """
-	def __init__(self, areas, cp_positions):
-		""" cp_positions:	3 vector		the thruster's position on the body
+	def __init__(self, bodies, areas, cp_positions):
+		""" bodies:			{str:RigidBody}	the set of all bodies on which this will act
 			areas:			[float]			the effective area of the body with the drag coefficient multiplied in
-			cp_position:	[3 vector]		the position of the centre of pressure in the body frame
+			cp_positions:	[3 vector]		the position of the centre of pressure in the body frame
 		""" # TODO: account for orientation-dependent cD and cP
 		self.areas = areas
-		self.cp_positions = np.array(cp_positions)
+		self.cp_positions = [cp_position - b.cm_position for cp_position, b in zip(cp_positions, bodies.values())]
 
 	def force_on(self, body, time, position, rotation, velocity, angularv):
 		velocity = self.environment.get_air_velocity(time)

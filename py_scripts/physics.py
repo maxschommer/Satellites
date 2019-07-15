@@ -76,7 +76,7 @@ class Environment():
 				if body.active:
 					initial_state.extend([*body.position, *body.rotation, *body.momentum, *body.angularm])
 				else:
-					initial_state.extend([-9000,0,0, 1,0,0,0, 0,0,0, 0,0,0])
+					initial_state.extend([-9000,0,0, 1,0,0,0, 0,0,0, 0,0,0]) # hide the inactive bodies at -9000
 			step_solution = solve_ivp(self.ode_func, [t, tf], initial_state, dense_output=True, events=self.events, method=method, rtol=1e-6) # solve
 			full_ts.extend(step_solution.sol.ts[:-1]) # save the results to our full solution
 			full_interpolants.extend(step_solution.sol.interpolants)
