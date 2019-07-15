@@ -34,7 +34,7 @@ if __name__ == '__main__':
 	for drag_coef in [1, .1, .01, 10]: # A*m^2
 		print("c_D = {:.0e} mA m^2".format(drag_coef))
 		for seed in range(0, 3):
-			print("	i = {:02d}".format(i))
+			print("	i = {:02d}".format(seed))
 			print("		setting up environment...")
 
 			FILENAME = 'orient-{:.0e}-{:01d}.pkl'.format(drag_coef, seed)
@@ -72,7 +72,7 @@ if __name__ == '__main__':
 				# Thruster(bodies['left_sat'], [0,-.05,0], [ 1, 0, 0], lambda t: [.001,0,-.001,-.001,0,.001][int(t)%6]),
 			]
 			events = [
-				# Launch(20000+1*i, bodies['satellites'], bodies['dipole'], [.02,-.040+.008*i,0], [0,0,.6], [63.,0,0]) for i in range(10),
+				# Launch(10200+1*i, bodies['satellites'], bodies['dipole'], [.02,-.040+.008*i,0], [0,0,.6], [63.,0,0]) for i in range(10),
 				# Launch(30000, bodies['satellites'], bodies['vapor'], [0,0,0], [0,0,.1], [0,0,0]),
 				# Launch(35000, bodies['satellites'], bodies['vapor'], [0,0,0], [0,0,.1], [0,0,0]),
 			]

@@ -16,15 +16,19 @@ ANGULARV_SCALE = .002
 
 class Stage():
 	""" A group of actors with functions for updating and displaying them """
-	def __init__(self, actors, environment, speed=1):
+	def __init__(self, actors, environment, speed=1, t_start=0, t_end=None):
 		""" actors:			[Actor]		the list of Actors visible on this stage
 			environment:	Environment	the Environment of bodies, so that we know about the physical solution we're showing
 			speed:			float		the factor of realtime at which to animate
+			t_start:		float		the first time to show (defaults to t=0)
+			t_end:			float		the final time to show (defaults to last time simulated)
 		"""
 		self.actors = actors
 		self.environment = environment
 		self.speed = speed
-		self.t = 0
+		self.t = t_start
+		self.t_start = t_start
+		self.t_end = t_end if t_end is not None else environment.max_t
 		self.started = False
 
 		for actor in self.actors:
@@ -39,8 +43,8 @@ class Stage():
 			self.started = True # because that's when pyglet tries to skip past the first 3 seconds
 		else:
 			self.t = self.t + self.speed*dt
-			if self.t > self.environment.max_t:
-				self.t -= self.environment.max_t
+			if self.t > self.t_end:
+				self.t = self.t_start
 
 			for a in self.actors:
 				a.update(self.t)

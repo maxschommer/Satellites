@@ -11,7 +11,7 @@ from rendering import Stage, BodyActor, VectorActor, VectorFieldActor
 WINDOW_WIDTH = 800
 WINDOW_HEIGHT = 600
 
-FILENAME = 'orient-16-00.pkl'
+FILENAME = 'orient-1e-01-0.pkl'
 
 
 def look_at(target, source=[0, 0, -1], roll=0):
@@ -36,9 +36,9 @@ if __name__ == '__main__':
 		# VectorActor('left_sat', "angularv", "Resources/arrow->Arrow"),
 		# VectorActor('center_sat', "angularv", "Resources/arrow->Arrow"),
 		# VectorActor('right_sat', "angularv", "Resources/arrow->Arrow"),
-		VectorActor('satellites', "angularv", "Resources/arrow->Arrow"),
-		# VectorFieldActor(environment.air_velocity, "Resources/arrow->Arrow", 'satellites'),
 	], environment, speed=1)
+		# VectorActor('satellites', "angularv", "Resources/arrow->Arrow"),
+		VectorFieldActor(environment.air_velocity, "Resources/arrow->Arrow", 'satellites'),
 
 	scene = rc.Scene( # build the ratcave scene
 		meshes=[a.mesh for a in stage.actors],
@@ -55,9 +55,8 @@ if __name__ == '__main__':
 	pyglet.clock.schedule(stage.update)
 
 	def move_camera(dt): # optionally, queue up a camera moving process
-		scene.camera.position.x = scene.meshes[0].position.x - .5
-		scene.camera.position.y = scene.meshes[0].position.y - .1
-		scene.camera.position.z = scene.meshes[0].position.z + .1
+		origin = stage.environment.global_cm(stage.t)
+		scene.camera.position.xyz = origin + [-.5,-.1, .1]
 	pyglet.clock.schedule(move_camera)
 
 	pyglet.app.run() # start the viewer!

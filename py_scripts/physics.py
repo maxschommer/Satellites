@@ -209,6 +209,12 @@ class Environment():
 		else:
 			return self.air_density
 
+	def global_cm(self, t):
+		cm = np.zeros(3)
+		for body in self.bodies.values():
+			cm += body.get_position(t)
+		return cm
+
 	def shell(self):
 		""" Strip away all of the things that don't fit in the pickle jar. """
 		self.constraints = None
