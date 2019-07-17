@@ -12,7 +12,7 @@ from physics import Environment, RigidBody
 from sensor import Photodiode, Magnetometer, Magnetostabilisation
 
 
-FILENAME = 'stabl0.pkl' # place to save
+FILENAME = 'test.pkl' # place to save
 
 WINDOW_WIDTH = 800 # window properties
 WINDOW_HEIGHT = 600
@@ -31,18 +31,18 @@ cm_3 = [-19.43e-3,-0.65e-3,-0.76e-3] # m
 
 
 if __name__ == '__main__':
-	for drag_coef in [1, .1, .01, 10]: # A*m^2
-		print("c_D = {:.0e} mA m^2".format(drag_coef))
-		for seed in range(0, 3):
-			print("	i = {:02d}".format(seed))
+	for seed in range(1, 4):
+		print("i = {:02d}".format(seed))
+		for drag_coef in [10]: # A*m^2
+			print("	c_D = {:.0e}".format(drag_coef))
 			print("		setting up environment...")
 
-			FILENAME = 'orient-{:.0e}-{:01d}.pkl'.format(drag_coef, seed)
+			FILENAME = 'magnet-{:.0e}-{:01d}.pkl'.format(drag_coef, seed)
 			np.random.seed(seed) # make it reproduceable 
 
 			q0 = np.random.randn(4) # pick some initial conditions
 			q0 = q0/np.linalg.norm(q0)
-			v0 = [1, 0, 0] # m/s
+			v0 = [0, 0, 0] # m/s
 			ω0 = np.random.normal(0., 1., 3)
 
 			bodies = { # declare all of the things
@@ -66,8 +66,8 @@ if __name__ == '__main__':
 			]
 			external_impulsors = [
 				Magnetorker(bodies['satellites'], Magnetostabilisation(sensors['magnet'], max_moment=.02, axes=[1,1,1])),
-				# PermanentMagnet(bodies['satellites'], [0, 0, moment]),
-				Drag(bodies, [drag_coef*.1*.01], [[0,0,0]]),
+				PermanentMagnet(bodies['satellites'], [0, 0, 54.1*(1/16)**2*(1/8)]), # put radius and height in inches into paretheses
+				Drag(bodies, [drag_coef*np.array([.1*.01, .3*.01, .1*.3])], [[0,0,0]]),
 				# Thruster(bodies['left_sat'], [0, .05,0], [-1, 0, 0], lambda t: [.001,0,-.001,-.001,0,.001][int(t)%6]),
 				# Thruster(bodies['left_sat'], [0,-.05,0], [ 1, 0, 0], lambda t: [.001,0,-.001,-.001,0,.001][int(t)%6]),
 			]
@@ -86,7 +86,7 @@ if __name__ == '__main__':
 			)
 
 			print("		solving...")
-			environment.solve(0, 180*60, method='LSODA') # run the simulation
+			environment.solve(0, 4.5*3600, method='LSODA') # run the simulation
 			
 			print("		saving as {}...".format(FILENAME))
 			environment.shell() # strip away the unpicklable parts

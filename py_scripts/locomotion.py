@@ -97,19 +97,32 @@ class Drag(Impulsor):
 	""" External force and torke imparted by collision with the atmosphere. """
 	def __init__(self, bodies, areas, cp_positions):
 		""" bodies:			{str:RigidBody}	the set of all bodies on which this will act
-			areas:			[float]			the effective area of the body with the drag coefficient multiplied in
+			areas:			[3x3 matrix]	the effective area of the body on each axis with the drag coefficients multiplied in
 			cp_positions:	[3 vector]		the position of the centre of pressure in the body frame
-		""" # TODO: account for orientation-dependent cD and cP
-		self.areas = areas
+		"""
+		self.areas = [np.ones(3)*area for area in areas] # the area matrices are to be multiplied by the wind direction
 		self.cp_positions = [cp_position - b.cm_position for cp_position, b in zip(cp_positions, bodies.values())]
 
 	def force_on(self, body, time, position, rotation, velocity, angularv):
-		velocity = self.environment.get_air_velocity(time)
-		area = self.areas[body if type(body) is int else body.num]
-		return 1/2*area*self.environment.get_air_density(time)*np.linalg.norm(velocity)*velocity
+		wind_velocity = self.environment.get_air_velocity(time)
+		area_vec = self.areas[body if type(body) is int else body.num]
+		v_times_a = np.sum(np.abs(wind_velocity*rotation.rotate(area_vec))) # effective area times velocity magnitude
+		return 1/2*v_times_a*self.environment.get_air_density(time)*wind_velocity
 
 	def torke_on(self, body, time, position, rotation, velocity, angularv):
-		area = self.areas[body if type(body) is int else body.num]
-		cp_position = self.cp_positions[body if type(body) is int else body.num]
-		return 1e3*np.cross(rotation.rotate(cp_position), self.force_on(body, time, position, rotation, velocity, angularv)) -\
-			1/2*area**(2.5)*self.environment.get_air_density(time)*np.linalg.norm(angularv)*angularv # combine torque due to offset center of pressure and against to rotation of body
+		cp_position = self.cp_positions[body if type(body) is int else body.num] # this torke is pretty straightforward
+		r_cross_f_torke = np.cross(rotation.rotate(cp_position), self.force_on(body, time, position, rotation, velocity, angularv))
+		# area_vec = self.areas[body if type(body) is int else body.num] # this one is rough and super small and I actually just removed it to make it run faster
+		# area_eff = np.sum(area_vec - np.abs(normalized(angularv)*rotation.rotate(area_vec))) # effective area times velocity magnitude
+		ω_squared_torke = 0#-1/2*area_eff**(2.5)*self.environment.get_air_density(time)*np.linalg.norm(angularv)*angularv
+		return r_cross_f_torke + ω_squared_torke # combine torque due to offset center of pressure and against rotation of body
+
+
+def normalized(vec):
+	mag = np.linalg.norm(vec)
+	if mag == 0:
+		base = np.zeros(vec.shape)
+		base[0] = 1
+		return base
+	else:
+		return vec / mag

@@ -6,17 +6,17 @@ import seaborn as sns
 sns.set_style('whitegrid')
 
 
-FILENAME = 'orient-{:.0e}-{:01d}.pkl'
+FILENAME = 'magnet-{:.0e}-{:01d}.pkl'
 
 
 if __name__ == '__main__':
 	ωs = []
 	Es = []
 	ϴs = []
-	m = .1
-	for seed in range(1):
-		print('loading',m,seed)
-		with open('../simulations/{}'.format(FILENAME.format(m, seed)), 'rb') as f:
+	param = .10
+	for seed in range(1, 2):
+		print('loading', param, seed)
+		with open('../simulations/{}'.format(FILENAME.format(param, seed)), 'rb') as f:
 			env = pickle.load(f)
 
 		T = np.linspace(0, env.max_t, 200)

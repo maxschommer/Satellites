@@ -11,7 +11,7 @@ from rendering import Stage, BodyActor, VectorActor, VectorFieldActor
 WINDOW_WIDTH = 800
 WINDOW_HEIGHT = 600
 
-FILENAME = 'orient-1e-01-0.pkl'
+FILENAME = 'magnet-1e-01-1.pkl'
 
 
 def look_at(target, source=[0, 0, -1], roll=0):
@@ -36,9 +36,9 @@ if __name__ == '__main__':
 		# VectorActor('left_sat', "angularv", "Resources/arrow->Arrow"),
 		# VectorActor('center_sat', "angularv", "Resources/arrow->Arrow"),
 		# VectorActor('right_sat', "angularv", "Resources/arrow->Arrow"),
-	], environment, speed=1)
 		# VectorActor('satellites', "angularv", "Resources/arrow->Arrow"),
 		VectorFieldActor(environment.air_velocity, "Resources/arrow->Arrow", 'satellites'),
+	], environment, speed=300)
 
 	scene = rc.Scene( # build the ratcave scene
 		meshes=[a.mesh for a in stage.actors],
