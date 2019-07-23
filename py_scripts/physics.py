@@ -1,6 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
-from scipy.integrate import solve_ivp, OdeSolution
+from scipy.integrate import solve_ivp
 from pyquaternion import Quaternion
 
 import constraint
@@ -58,10 +58,12 @@ class Environment():
 			body.init_velocity += 1/body.m*reaction_impulses[body.num][0:3]
 			body.init_angularv += np.matmul(I_inv_rots[-1], reaction_impulses[-1][3:6])
 		
-	def solve(self, t0, tf, method='RK54'):
+	def solve(self, t0, tf, method='RK54', num_data=20000):
 		""" Solve the Universe and save the solution in self.solution.
-			t0:	float	the time at which to start solving
-			tf:	float	the final time about which we care
+			t0:			float	the time at which to start solving
+			tf:			float	the final time about which we care
+			method:		str		the code for the method to pass to solve_ivp
+			num_data:	int		the number of times at which to store the value of the solution
 		"""
 		t = t0 # start at time t0
 		for body in self.bodies.values(): # put all of the init_ variables into more generic ones
@@ -69,7 +71,7 @@ class Environment():
 			body.momentum = body.m*body.init_velocity # these state field will be used at every breakpoint
 			body.angularm = body.rotation.rotate(np.matmul(body.I,body.rotation.inverse.rotate(body.init_angularv)))
 
-		full_ts, full_interpolants = [], []
+		full_ts, full_ys = [], []
 		while True: # now repeatedly
 			initial_state = [] # build a new "initial" state for the solver
 			for body in self.bodies.values():
@@ -77,15 +79,14 @@ class Environment():
 					initial_state.extend([*body.position, *body.rotation, *body.momentum, *body.angularm])
 				else:
 					initial_state.extend([-9000,0,0, 1,0,0,0, 0,0,0, 0,0,0]) # hide the inactive bodies at -9000
-			step_solution = solve_ivp(self.ode_func, [t, tf], initial_state, dense_output=True, events=self.events, method=method, rtol=1e-6) # solve
-			full_ts.extend(step_solution.sol.ts[:-1]) # save the results to our full solution
-			full_interpolants.extend(step_solution.sol.interpolants)
-			final_state = step_solution.y[:,-1] # unpack the "final" state
-			for body in self.bodies.values():
-				body.position, body.rotation = final_state[0:3], Quaternion(final_state[3:7])
-				body.momentum, body.angularm = final_state[7:10], final_state[10:13]
-				final_state = final_state[13:]
+			step_solution = solve_ivp(self.ode_func, [t, tf], initial_state, t_eval=np.linspace(t, tf, num_data), events=self.events, method=method, rtol=1e-6) # solve
+			full_ts.extend(step_solution.t[:-1]) # save the results to our full solution
+			full_ys.extend(step_solution.y[:,:-1].transpose())
 			t = step_solution.t[-1]
+			y = step_solution.y[:,-1] # unpack the "final" state
+			for i, body in enumerate(self.bodies.values()):
+				body.position, body.rotation = y[13*i+0:13*i+3], Quaternion(y[13*i+3:13*i+7])
+				body.momentum, body.angularm = y[13*i+7:13*i+10], y[13*i+10:13*i+13]
 
 			if step_solution.status == 1: # if an event was hit
 				for i, event in enumerate(self.events):
@@ -97,7 +98,7 @@ class Environment():
 			else: # if the end of the tspan or an error was hit
 				break # end this cycle of death
 
-		self.solution = OdeSolution(full_ts+[t], full_interpolants)
+		self.solution = (np.array(full_ts+[t]), np.array(full_ys+[y]))
 		self.max_t = tf
 
 	def ode_func(self, t, state):
@@ -223,11 +224,7 @@ class Environment():
 
 	def reduce(self):
 		""" Approximate the solution to make it fit in a jar. """
-		ts = self.solution.ts[::2]
-		interps = self.solution.interpolants[::2]
-		while len(interps) >= len(ts):
-			interps.pop()
-		self.solution = OdeSolution(ts, interps)
+		self.solution = (sol_component[::2] for sol_component in self.solution)
 
 
 class RigidBody():
@@ -252,19 +249,23 @@ class RigidBody():
 		self.active = True # an inactive body will neither solve nor render
 
 	def get_position(self, t):
-		return self.environment.solution(t)[13*self.num:13*self.num+3]
+		tp, yp = self.environment.solution
+		return np.array([np.interp(t, tp, yp[:,13*self.num+i]) for i in range(0, 3)])
 
 	def get_rotation(self, t):
-		return Quaternion(self.environment.solution(t)[13*self.num+3:13*self.num+7])
+		tp, yp = self.environment.solution
+		return Quaternion([np.interp(t, tp, yp[:,13*self.num+i]) for i in range(3, 7)])
 
 	def get_velocity(self, t):
-		momentum = self.environment.solution(t)[13*self.num+7:13*self.num+10]
+		tp, yp = self.environment.solution
+		momentum = np.array([np.interp(t, tp, yp[:,13*self.num+i]) for i in range(7, 10)])
 		return momentum/self.m
 
 	def get_angularv(self, t):
+		tp, yp = self.environment.solution
 		I_inv_rot = np.matmul(np.matmul(self.get_rotation(t).rotation_matrix,self.I_inv),self.get_rotation(t).rotation_matrix.transpose())
-		angular_momentum = self.environment.solution(t)[13*self.num+10:13*self.num+13]
-		return np.matmul(I_inv_rot,angular_momentum)
+		angularm = np.array([np.interp(t, tp, yp[:,13*self.num+i]) for i in range(10, 13)])
+		return np.matmul(I_inv_rot, angularm)
 
 	def __eq__(self, other):
 		return self.num == other or (hasattr(other,'num') and self.num == other.num)

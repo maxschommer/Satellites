@@ -13,21 +13,20 @@ if __name__ == '__main__':
 	ωs = []
 	Es = []
 	ϴs = []
-	param = .10
-	for seed in range(1, 2):
+	param = .1
+	for seed in [5, 4, 3, 2, 1, 0]:
 		print('loading', param, seed)
 		with open('../simulations/{}'.format(FILENAME.format(param, seed)), 'rb') as f:
 			env = pickle.load(f)
 
-		T = np.linspace(0, env.max_t, 200)
-		Y = env.solution(T)
+		T, Y = env.solution
 
 		key = 'satellites'
 		i = 13*env.bodies[key].num
 		ωs.append([])
 		Es.append([])
 		ϴs.append([])
-		for t, y in zip(T, Y.transpose()):
+		for t, y in zip(T, Y):
 			q = Quaternion(y[i+3:i+7])
 			z_prime = q.rotate([0,0,1])
 			R = q.rotation_matrix
@@ -42,31 +41,32 @@ if __name__ == '__main__':
 	ϴs = np.array(ϴs)
 	env = None # clear up some memory
 
-	# order = np.argsort(Es[:,0])
-	order = np.arange(0, len(Es[:,0]))
+	order = np.argsort(Es[:,0])
+	# order = np.arange(0, len(Es[:,0]))
 
 	plt.figure()
-	plt.title("Rotational kinetic energy")
+	plt.title("Rotational kinetic energy (c_D = {:n})".format(param))
 	for z, i in enumerate(order):
-		plt.semilogy(T/3600, Es[i,:], linewidth=.7, zorder=10-z, label=[0, 5, 10, 20][i])
+		plt.semilogy(T/3600, Es[i,:], linewidth=.7, zorder=10-z)
 	plt.ylabel("Energy (J)")
 	plt.xlabel("Time (hr)")
 	plt.legend()
 
 	plt.figure()
-	plt.title("Angular velocity magnitude")
+	plt.title("Angular velocity magnitude (c_D = {:n})".format(param))
 	for z, i in enumerate(order):
-		plt.semilogy(T/3600, ωs[i,:]/(2*np.pi)*60, linewidth=.7, zorder=10-z, label=[0, 5, 10, 20][i])
+		plt.semilogy(T/3600, ωs[i,:]/(2*np.pi)*60, linewidth=.7, zorder=10-z)
 	plt.ylabel("Angular velocity (rpm)")
 	plt.xlabel("Time (hr)")
 	plt.legend()
 
 	plt.figure()
-	plt.title("Angle between launcher axis and orbital path")
+	plt.title("Angle between launcher axis and orbital path (c_D = {:n})".format(param))
 	for z, i in enumerate(order):
-		plt.plot(T/3600, np.degrees(ϴs[i,:]), linewidth=.7, zorder=10-z, label=[0, 4, 8, 24][i])
+		plt.plot(T/3600, np.degrees(ϴs[i,:]), linewidth=.7, zorder=10-z)
 	plt.ylabel("Angle (°)")
 	plt.xlabel("Time (hr)")
+	plt.yticks(np.linspace(0, 180, 7))
 	plt.legend()
 
 	# plt.figure()

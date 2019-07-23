@@ -55,11 +55,10 @@ class VelocityTable(Table):
 
 	def _value(self, t):
 		i = self.table.ElapsedSecs.searchsorted(t) - 1 # get the next event
-		t0 = self.table.iloc[i].ElapsedSecs # and the last one
-		t1 = self.table.iloc[i+1].ElapsedSecs
-		v0 = np.array(self.table.iloc[i][['VX', 'VY', 'VZ']])
-		v1 = np.array(self.table.iloc[i+1][['VX', 'VY', 'VZ']])
-		return -((t - t0)/(t1 - t0)*(v1 - v0) + v0)*1e+3 # and commit linear interpolation (negate because we want air velocity, not satellite velocity)
+		y0, y1 = self.table.iloc[i], self.table.iloc[i+1] # and the last one
+		t0, t1 = y0.ElapsedSecs, y1.ElapsedSecs
+		v0, v1 = -np.array([y0.VX, y0.VY, y0.VZ]), -np.array([y1.VX, y1.VY, y1.VZ])
+		return ((t - t0)/(t1 - t0)*(v1 - v0) + v0)*1e+3 # and commit linear interpolation (negate because we want air velocity, not satellite velocity)
 
 
 class AtmosphericTable(Table):
@@ -71,10 +70,9 @@ class AtmosphericTable(Table):
 
 	def _value(self, t):
 		i = self.table.ElapsedSecs.searchsorted(t) - 1 # find the next event
-		t0 = self.table.iloc[i].ElapsedSecs # and the last one
-		t1 = self.table.iloc[i+1].ElapsedSecs
-		ρ0 = self.table.iloc[i].AtmosDensity
-		ρ1 = self.table.iloc[i+1].AtmosDensity
+		y0, y1 = self.table.iloc[i], self.table.iloc[i+1] # and the last one
+		t0, t1 = y0.ElapsedSecs, y1.ElapsedSecs
+		ρ0, ρ1 = y0.AtmosDensity, y1.AtmosDensity
 		return 1e-9*((t - t0)/(t1 - t0)*(ρ1 - ρ0) + ρ0) # and commit linear interpolation (negate because we want air velocity, not satellite velocity)
 
 
@@ -89,9 +87,8 @@ class MagneticTable(Table):
 
 	def _value(self, t):
 		i = self.table.ElapsedSecs.searchsorted(t) - 1 # find the next event
-		t0 = self.table.iloc[i].ElapsedSecs # and the last one
-		t1 = self.table.iloc[i+1].ElapsedSecs
-		r0 = np.array(self.table.iloc[i][['X', 'Y', 'Z']])
-		r1 = np.array(self.table.iloc[i+1][['X', 'Y', 'Z']])
+		y0, y1 = self.table.iloc[i], self.table.iloc[i+1] # and the last one
+		t0, t1 = y0.ElapsedSecs, y1.ElapsedSecs
+		r0, r1 = np.array([y0.X, y0.Y, y0.Z]), np.array([y1.X, y1.Y, y1.Z])
 		r = ((t - t0)/(t1 - t0)*(r1 - r0) + r0)*1e+3 # and commit linear interpolation
 		return -(3*r*np.dot(self.B_0, r)/np.linalg.norm(r)**2 - self.B_0)*(self.R_E/np.linalg.norm(r))**3 # and use a dipole approximation
