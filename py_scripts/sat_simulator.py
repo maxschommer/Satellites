@@ -31,9 +31,9 @@ cm_3 = [-19.43e-3,-0.65e-3,-0.76e-3] # m
 
 
 if __name__ == '__main__':
-	for seed in range(1, 4):
+	for seed in range(0, 6):
 		print("i = {:02d}".format(seed))
-		for drag_coef in [10]: # A*m^2
+		for drag_coef in [.1, 1, 10]:
 			print("	c_D = {:.0e}".format(drag_coef))
 			print("		setting up environment...")
 
@@ -66,7 +66,7 @@ if __name__ == '__main__':
 			]
 			external_impulsors = [
 				Magnetorker(bodies['satellites'], Magnetostabilisation(sensors['magnet'], max_moment=.02, axes=[1,1,1])),
-				PermanentMagnet(bodies['satellites'], [0, 0, 54.1*(1/16)**2*(1/8)]), # put radius and height in inches into paretheses
+				PermanentMagnet(bodies['satellites'], [0, 0, 54.1*(1/8/2)**2*(4/8)]), # put diameter and height in inches into paretheses
 				Drag(bodies, [drag_coef*np.array([.1*.01, .3*.01, .1*.3])], [[0,0,0]]),
 				# Thruster(bodies['left_sat'], [0, .05,0], [-1, 0, 0], lambda t: [.001,0,-.001,-.001,0,.001][int(t)%6]),
 				# Thruster(bodies['left_sat'], [0,-.05,0], [ 1, 0, 0], lambda t: [.001,0,-.001,-.001,0,.001][int(t)%6]),
@@ -86,7 +86,7 @@ if __name__ == '__main__':
 			)
 
 			print("		solving...")
-			environment.solve(0, 4.5*3600, method='LSODA') # run the simulation
+			environment.solve(0, 17300, method='LSODA') # run the simulation
 			
 			print("		saving as {}...".format(FILENAME))
 			environment.shell() # strip away the unpicklable parts
