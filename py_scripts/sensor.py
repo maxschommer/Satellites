@@ -61,8 +61,11 @@ class Magnetometer(Sensor):
 		self.body = body
 
 	def reading(self, time, positions, rotations, velocitys, angularvs):
-		B_rot = rotations[self.body.num].inverse.rotate(self.environment.get_magnetic_field(time))
-		B_dot_rot = -np.cross(rotations[self.body.num].inverse.rotate(angularvs[self.body.num]), B_rot)
+		B = self.environment.get_magnetic_field(time)
+		B_dot = (B - self.environment.get_magnetic_field(time-1.))/1.
+		B_rot = rotations[self.body.num].inverse.rotate(B)
+		B_dot_rot = rotations[self.body.num].inverse.rotate(B_dot) -\
+			np.cross(rotations[self.body.num].inverse.rotate(angularvs[self.body.num]), B_rot)
 		return np.concatenate((B_rot, B_dot_rot))
 
 
