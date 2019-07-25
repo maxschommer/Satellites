@@ -46,28 +46,28 @@ if __name__ == '__main__':
 			ω0 = np.random.normal(0., 1., 3)
 
 			bodies = { # declare all of the things
-				# 'left_sat':  RigidBody(I_1, m_1, cm_1, init_position=[0,0, .01], init_angularv=[0,0,0], init_rotation=[1,0,0,0]),
-				# 'center_sat':RigidBody(I_1, m_1, cm_1, init_position=[0,0,0], init_angularv=[0,0,0], init_rotation=[0,0,1,0]),
-				# 'right_sat': RigidBody(I_1, m_1, cm_1, init_position=[0,0,-.01], init_angularv=[0,0,0], init_rotation=[1,0,0,0]),
-				# 'vapor':     RigidBody(1.25e-7*np.identity(3), 5e-3, [0,0,0]),
-				# 'dipole':    RigidBody([[1.981e-9,0,0],[.013e-9,0,0],[1.981e-9,0,0]], 1.053e-4, )
-				'satellites':RigidBody(I_3, m_3, cm_3, init_angularv=ω0, init_rotation=q0),
+				# 'left_sat':  RigidBody(m_1, cm_1, I_1, init_position=[0,0, .01], init_angularv=[0,0,0], init_rotation=[1,0,0,0]),
+				# 'center_sat':RigidBody(m_1, cm_1, I_1, init_position=[0,0,0], init_angularv=[0,0,0], init_rotation=[0,0,1,0]),
+				# 'right_sat': RigidBody(m_1, cm_1, I_1, init_position=[0,0,-.01], init_angularv=[0,0,0], init_rotation=[1,0,0,0]),
+				# 'vapor':     RigidBody(5e-3, [0,0,0], 1.25e-7*np.identity(3)),
+				'dipole':    RigidBody(1.053e-4, [0,0,0], [[1.981e-9,0,0],[0,.013e-9,0],[0,0,1.981e-9]]),
+				'satellites':RigidBody(m_3, cm_3, axes=v_3, moments=λ_3, init_angularv=ω0, init_rotation=q0),
 			}
 			sensors = {
-				# 'photo_0':Photodiode(bodies['satellites'], [0, 0, 1]),
-				# 'photo_1':Photodiode(bodies['satellites'], [0, 1, 0]),
-				# 'photo_2':Photodiode(bodies['satellites'], [0, 0,-1]),
-				# 'photo_3':Photodiode(bodies['satellites'], [0,-1, 0]),
-				'magnet':Magnetometer(bodies['satellites']),
+				# 'photo_0': Photodiode(bodies['satellites'], [0, 0, 1]),
+				# 'photo_1': Photodiode(bodies['satellites'], [0, 1, 0]),
+				# 'photo_2': Photodiode(bodies['satellites'], [0, 0,-1]),
+				# 'photo_3': Photodiode(bodies['satellites'], [0,-1, 0]),
+				'magnetic':Magnetometer(bodies['satellites']),
 			}
 			constraints = [
 				# Hinge(bodies['left_sat'],  bodies['center_sat'], [-.05,0,-.005], [.05,0,-.005], [0,1,0], [0,1,0]),
 				# Hinge(bodies['center_sat'], bodies['right_sat'], [-.05,0, .005], [.05,0, .005], [0,1,0], [0,1,0]),
 			]
 			external_impulsors = [
-				Magnetorker(bodies['satellites'], Magnetostabilisation(sensors['magnet'], max_moment=.02, axes=[1,1,1])),
-				PermanentMagnet(bodies['satellites'], [0, 0, 54.1*(1/8/2)**2*(4/8)]), # put diameter and height in inches into paretheses
 				Drag(bodies, [drag_coef*np.array([.1*.01, .3*.01, .1*.3])], [[0,0,0]]),
+				Magnetorker(bodies['satellites'], Magnetostabilisation(sensors['magnetic'], max_moment=.2, axes=[1,1,1])),
+				PermanentMagnet(bodies['satellites'], [0, 0, 8*54.1*(1/8/2)**2*(1/8)]), # put diameter and height in inches into paretheses
 				# Thruster(bodies['left_sat'], [0, .05,0], [-1, 0, 0], lambda t: [.001,0,-.001,-.001,0,.001][int(t)%6]),
 				# Thruster(bodies['left_sat'], [0,-.05,0], [ 1, 0, 0], lambda t: [.001,0,-.001,-.001,0,.001][int(t)%6]),
 			]

@@ -229,23 +229,34 @@ class Environment():
 
 class RigidBody():
 	""" A physical unbending object free to move and rotate in space """
-	def __init__(self, I, m, cm_position, init_position=[0,0,0], init_rotation=[1,0,0,0], init_velocity=[0,0,0], init_angularv=[0,0,0]):
-		""" I:		      3x3 float array		rotational inertia
-			m:		  	  float				    mass
-			cm_position:  3 float vector		centre of mass in the mesh coordinate frame
+	def __init__(self, m, cm_position, tensor=None, axes=None, moments=None,
+			init_position=[0,0,0], init_rotation=[1,0,0,0], init_velocity=[0,0,0], init_angularv=[0,0,0]):
+		""" m:				float				mass
+			cm_position:	3 float vector		centre of mass in the mesh coordinate frame
+			tensor:			3x3 float matrix	rotational inertia tensor (axes and moments will be ignored if this is present)
+			axes:			[3 float vector]	principal axes of inertia (moments must be present if this is)
+			moments:		[float]				principal moments of inertia (axes must be present if this is)
 		"""
-		self.I = I
-		self.I_inv = np.linalg.inv(I)
 		self.m = m
 		self.cm_position = np.array(cm_position)
-		self.num = None
-		self.environment = None
+
+		if tensor is not None: # if a tensor is provided
+			self.I = np.array(tensor) # take it
+			self.I_inv = np.linalg.inv(self.I)
+		else: # if values and axes are provided
+			basis = np.array(axes).transpose()
+			values = np.identity(3)/moments # use them to construct the inverse
+			self.I_inv = np.matmul(np.matmul(basis, values), np.linalg.inv(basis))
+			self.I_inv = (self.I_inv + self.I_inv.transpose())/2
+			self.I = np.linalg.inv(self.I_inv)
 
 		self.init_position = np.array(init_position, dtype=np.float)
 		self.init_rotation = Quaternion(init_rotation, dtype=np.float)
 		self.init_velocity = np.array(init_velocity, dtype=np.float)
 		self.init_angularv = np.array(init_angularv, dtype=np.float)
 
+		self.num = None
+		self.environment = None
 		self.active = True # an inactive body will neither solve nor render
 
 	def get_position(self, t):
