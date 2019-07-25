@@ -11,7 +11,7 @@ from rendering import Stage, BodyActor, VectorActor, VectorFieldActor
 WINDOW_WIDTH = 800
 WINDOW_HEIGHT = 600
 
-FILENAME = 'magnet-1e+00-5.pkl'
+FILENAME = 'magnet-1e-01-0.pkl'
 
 
 def look_at(target, source=[0, 0, -1], roll=0):
@@ -32,13 +32,14 @@ if __name__ == '__main__':
 		# BodyActor('center_sat', "ThinSatFrame->Frame"),
 		# BodyActor('right_sat', "ThinSatFrame->Frame"),
 		# BodyActor('acetone', "Justin->Justin", scale=30),
+		# BodyActor('dipole', "Resources/arrow->Arrow", scale=.5),
 		BodyActor('satellites', "ThinSatAsm->ThinSatAsm"),
 		# VectorActor('left_sat', "angularv", "Resources/arrow->Arrow"),
 		# VectorActor('center_sat', "angularv", "Resources/arrow->Arrow"),
 		# VectorActor('right_sat', "angularv", "Resources/arrow->Arrow"),
-		# VectorActor('satellites', "angularv", "Resources/arrow->Arrow"),
-		VectorFieldActor(environment.magnetic_field, "Resources/arrow->Arrow", 'satellites'),
-	], environment, speed=300)
+		VectorActor('satellites', "angularv", "Resources/arrow->Arrow"),
+		# VectorFieldActor(environment.magnetic_field, "Resources/arrow->Arrow", 'satellites'),
+	], environment, speed=1)
 
 	scene = rc.Scene( # build the ratcave scene
 		meshes=[a.mesh for a in stage.actors],

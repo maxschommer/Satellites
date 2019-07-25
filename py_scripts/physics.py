@@ -58,7 +58,7 @@ class Environment():
 			body.init_velocity += 1/body.m*reaction_impulses[body.num][0:3]
 			body.init_angularv += np.matmul(I_inv_rots[-1], reaction_impulses[-1][3:6])
 		
-	def solve(self, t0, tf, method='RK54', num_data=20000):
+	def solve(self, t0, tf, method='RK54'):
 		""" Solve the Universe and save the solution in self.solution.
 			t0:			float	the time at which to start solving
 			tf:			float	the final time about which we care
@@ -79,7 +79,9 @@ class Environment():
 					initial_state.extend([*body.position, *body.rotation, *body.momentum, *body.angularm])
 				else:
 					initial_state.extend([-9000,0,0, 1,0,0,0, 0,0,0, 0,0,0]) # hide the inactive bodies at -9000
-			step_solution = solve_ivp(self.ode_func, [t, tf], initial_state, t_eval=np.linspace(t, tf, num_data), events=self.events, method=method, rtol=1e-6) # solve
+
+			step_solution = solve_ivp(self.ode_func, [t, tf], initial_state, events=self.events, method=method, rtol=1e-6) # solve
+
 			full_ts.extend(step_solution.t[:-1]) # save the results to our full solution
 			full_ys.extend(step_solution.y[:,:-1].transpose())
 			t = step_solution.t[-1]
@@ -212,9 +214,13 @@ class Environment():
 
 	def global_cm(self, t):
 		cm = np.zeros(3)
+		n = 0
 		for body in self.bodies.values():
-			cm += body.get_position(t)
-		return cm
+			x = body.get_position(t)
+			if x[0] > -9000:
+				cm += body.get_position(t)
+				n += 1
+		return cm/n
 
 	def shell(self):
 		""" Strip away all of the things that don't fit in the pickle jar. """

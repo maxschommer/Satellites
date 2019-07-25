@@ -65,14 +65,14 @@ if __name__ == '__main__':
 				# Hinge(bodies['center_sat'], bodies['right_sat'], [-.05,0, .005], [.05,0, .005], [0,1,0], [0,1,0]),
 			]
 			external_impulsors = [
-				Drag(bodies, [drag_coef*np.array([.1*.01, .3*.01, .1*.3])], [[0,0,0]]),
 				Magnetorker(bodies['satellites'], Magnetostabilisation(sensors['magnetic'], max_moment=.2, axes=[1,1,1])),
 				PermanentMagnet(bodies['satellites'], [0, 0, 8*54.1*(1/8/2)**2*(1/8)]), # put diameter and height in inches into paretheses
+				Drag(bodies, [[0,0,0], drag_coef*np.array([.1*.01, .3*.01, .1*.3])], [[0,0,0], [0,0,0]]),
 				# Thruster(bodies['left_sat'], [0, .05,0], [-1, 0, 0], lambda t: [.001,0,-.001,-.001,0,.001][int(t)%6]),
 				# Thruster(bodies['left_sat'], [0,-.05,0], [ 1, 0, 0], lambda t: [.001,0,-.001,-.001,0,.001][int(t)%6]),
 			]
 			events = [
-				# Launch(10200+1*i, bodies['satellites'], bodies['dipole'], [.02,-.040+.008*i,0], [0,0,.6], [63.,0,0]) for i in range(10),
+				*[Launch(6600+1*i, bodies['satellites'], bodies['dipole'], [.02,-.040+.008*i,0], [0,0,.6], [63.,0,0]) for i in range(1)],
 				# Launch(30000, bodies['satellites'], bodies['vapor'], [0,0,0], [0,0,.1], [0,0,0]),
 				# Launch(35000, bodies['satellites'], bodies['vapor'], [0,0,0], [0,0,.1], [0,0,0]),
 			]
