@@ -23,11 +23,12 @@ I_1 = [[9.759e-5,  -4.039e-6, -1.060e-7], # mass properties
 m_1 = 0.05223934 # kg
 cm_1 = [0.00215328, -0.00860001, -0.00038142] # m
 
-I_3 = [[ 445.e-6,   37.e-6,   23.e-6],
-       [  37.e-6, 4119.e-6,    1.e-6],
-       [  23.e-6,    1.e-6, 4555.e-6]] # kg*m^2
+v_3 = [[ 1.00, 0.09, 0.02],
+       [-0.09, 1.00,-0.01],
+       [-0.02, 0.00, 1.00]]
+λ_3 = [0.26661841e-3, 2.15589278e-3, 2.41089260e-3] # kg*m^2
 m_3 = .529 # kg
-cm_3 = [-19.43e-3,-0.65e-3,-0.76e-3] # m
+cm_3 = [-19.26e-3, -5.96e-3, -0.86e-3] # m
 
 
 if __name__ == '__main__':
@@ -86,7 +87,7 @@ if __name__ == '__main__':
 			)
 
 			print("		solving...")
-			environment.solve(0, 17300, method='LSODA') # run the simulation
+			environment.solve(0, 12000, method='LSODA') # run the simulation
 			
 			print("		saving as {}...".format(FILENAME))
 			environment.shell() # strip away the unpicklable parts
