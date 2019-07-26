@@ -9,7 +9,7 @@ from gmat_integration import MagneticTable, SunTable, VelocityTable, Atmospheric
 from locomotion import PermanentMagnet, Magnetorker, Thruster, GimballedThruster, Drag
 import matplotlib.pyplot as plt
 from physics import Environment, RigidBody
-from sensor import Photodiode, Magnetometer, Magnetostabilisation
+from sensor import Photodiode, Magnetometer, BangBangBdot
 
 
 FILENAME = 'test.pkl' # place to save
@@ -53,6 +53,7 @@ if __name__ == '__main__':
 				# 'vapor':     RigidBody(5e-3, [0,0,0], 1.25e-7*np.identity(3)),
 				'dipole':    RigidBody(1.053e-4, [0,0,0], [[1.981e-9,0,0],[0,.013e-9,0],[0,0,1.981e-9]]),
 				'satellites':RigidBody(m_3, cm_3, axes=v_3, moments=λ_3, init_angularv=ω0, init_rotation=q0),
+				# 'half_barrel':RigidBody(.602e-3, [37.192e-3,39.997e-3,.246e-3], [[8.134e+0, 8.358e-1, 8.584e-3], [8.358e-1, 2.948e+1, -1.017e-2], [8.584e-3, -1.017e-2, 2.859e+1]], init_angularv=[120,0,0])
 			}
 			sensors = {
 				# 'photo_0': Photodiode(bodies['satellites'], [0, 0, 1]),
@@ -66,7 +67,7 @@ if __name__ == '__main__':
 				# Hinge(bodies['center_sat'], bodies['right_sat'], [-.05,0, .005], [.05,0, .005], [0,1,0], [0,1,0]),
 			]
 			external_impulsors = [
-				Magnetorker(bodies['satellites'], Magnetostabilisation(sensors['magnetic'], max_moment=.2, axes=[1,1,1])),
+				Magnetorker(bodies['satellites'], BangBangBdot(sensors['magnetic'], max_moment=.2, axes=[1,1,1])),
 				PermanentMagnet(bodies['satellites'], [0, 0, 8*54.1*(1/8/2)**2*(1/8)]), # put diameter and height in inches into paretheses
 				Drag(bodies, [[0,0,0], drag_coef*np.array([.1*.01, .3*.01, .1*.3])], [[0,0,0], [0,0,0]]),
 				# Thruster(bodies['left_sat'], [0, .05,0], [-1, 0, 0], lambda t: [.001,0,-.001,-.001,0,.001][int(t)%6]),

@@ -69,18 +69,23 @@ class Magnetometer(Sensor):
 		return np.concatenate((B_rot, B_dot_rot))
 
 
-class Magnetostabilisation():
+class BangBangBdot():
 	""" A control loop for a Magnetorker, using a Magnetometer, to orient a RigidBody with respect to a magnetic field. """
-	def __init__(self, sensor, max_moment, axes=[1,1,1]):
+	def __init__(self, sensor, max_moment, axes=[1,1,1], precision=1):
 		""" sensor:		Magnetometer	the sensor from which to obtain feedback
 			axis:		3 vector		the desired direction of the external magnetic field in the body frame
 			max_moment:	float			the highest moment it will ever suggest on an axis (i.e. the Magnetorker's operating limit)
+			precision:	float			the minimum period of the bangs before it will switch to a linear response
 		"""
 		self.sensor = sensor
 		self.axes = np.array(axes)
 		self.max_moment = max_moment
+		self.gain = 2.2e-3/((3e-5)**2*precision)
 
 	def __call__(self, time):
 		""" Compute the magnetic dipole moment to exert. """
 		Bx, By, Bz, Bx_dot, By_dot, Bz_dot = self.sensor.last_value
-		return -np.array([np.copysign(self.max_moment, Bx_dot), np.copysign(self.max_moment, By_dot), np.copysign(self.max_moment, Bz_dot)])*self.axes
+		return -np.array([
+			np.clip(self.gain*Bx_dot, -self.max_moment, self.max_moment),
+			np.clip(self.gain*By_dot, -self.max_moment, self.max_moment),
+			np.clip(self.gain*Bz_dot, -self.max_moment, self.max_moment)])*self.axes
