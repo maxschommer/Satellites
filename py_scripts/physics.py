@@ -58,13 +58,18 @@ class Environment():
 			body.init_velocity += 1/body.m*reaction_impulses[body.num][0:3]
 			body.init_angularv += np.matmul(I_inv_rots[-1], reaction_impulses[-1][3:6])
 		
-	def solve(self, t0, tf, method='RK54'):
+	def solve(self, t0, tf, method='RK54', num_data=20000):
 		""" Solve the Universe and save the solution in self.solution.
 			t0:			float	the time at which to start solving
 			tf:			float	the final time about which we care
 			method:		str		the code for the method to pass to solve_ivp
 			num_data:	int		the number of times at which to store the value of the solution
+			WARNING: Events will actually trigger slightly before they should, because solve_ivp does
+				not currently return the state at a terminal event, just the time. It's	unfortunate,
+				but it'll have to do for now, until scipy fixes that.
 		"""
+		t_eval = np.linspace(t0, tf, num_data)
+
 		t = t0 # start at time t0
 		for body in self.bodies.values(): # put all of the init_ variables into more generic ones
 			body.position, body.rotation = body.init_position, body.init_rotation
@@ -80,7 +85,7 @@ class Environment():
 				else:
 					initial_state.extend([-9000,0,0, 1,0,0,0, 0,0,0, 0,0,0]) # hide the inactive bodies at -9000
 
-			step_solution = solve_ivp(self.ode_func, [t, tf], initial_state, events=self.events, method=method, rtol=1e-6) # solve
+			step_solution = solve_ivp(self.ode_func, [t, tf], initial_state, t_eval=t_eval[t_eval>=t], events=self.events, method=method, rtol=1e-6) # solve
 
 			full_ts.extend(step_solution.t[:-1]) # save the results to our full solution
 			full_ys.extend(step_solution.y[:,:-1].transpose())
