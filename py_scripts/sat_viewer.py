@@ -13,6 +13,7 @@ WINDOW_HEIGHT = 600
 
 FILENAME = 'magnet-1e-01-0.pkl'
 
+CAMERA_POS = np.array([-.5, -.1, .1])
 
 def look_at(target, source=[0, 0, -1], roll=0):
 	""" Return a Ratcave Rotation object that makes the camera look in the given direction. """
@@ -34,16 +35,17 @@ if __name__ == '__main__':
 		# BodyActor('acetone', "Justin->Justin", scale=30),
 		# BodyActor('dipole', "Resources/arrow->Arrow", scale=.5),
 		BodyActor('satellites', "ThinSatAsm->ThinSatAsm"),
+		# BodyActor('half-barrel', "HalfBarrel->Half-Barrel"),
 		# VectorActor('left_sat', "angularv", "Resources/arrow->Arrow"),
 		# VectorActor('center_sat', "angularv", "Resources/arrow->Arrow"),
 		# VectorActor('right_sat', "angularv", "Resources/arrow->Arrow"),
-		VectorActor('satellites', "angularv", "Resources/arrow->Arrow"),
-		# VectorFieldActor(environment.magnetic_field, "Resources/arrow->Arrow", 'satellites'),
-	], environment, speed=1)
+		# VectorActor('satellites', "angularv", "Resources/arrow->Arrow"),
+		VectorFieldActor(environment.magnetic_field, "Resources/arrow->Arrow", 'satellites'),
+	], environment, speed=300)
 
 	scene = rc.Scene( # build the ratcave scene
 		meshes=[a.mesh for a in stage.actors],
-		camera=rc.Camera(position=(-.5, -.1, .1), rotation=look_at([5, 1, -1], roll=79)),
+		camera=rc.Camera(rotation=look_at(-CAMERA_POS, roll=79)),
 		light=rc.Light(position=(0., 5., 1.)),
 		bgColor=(1, 1, .9))
 
@@ -57,7 +59,7 @@ if __name__ == '__main__':
 
 	def move_camera(dt): # optionally, queue up a camera moving process
 		origin = stage.environment.global_cm(stage.t)
-		scene.camera.position.xyz = origin + [-.5,-.1, .1]
+		scene.camera.position.xyz = origin + CAMERA_POS
 	pyglet.clock.schedule(move_camera)
 
 	pyglet.app.run() # start the viewer!

@@ -12,23 +12,29 @@ from physics import Environment, RigidBody
 from sensor import Photodiode, Magnetometer, BangBangBdot
 
 
-FILENAME = 'test.pkl' # place to save
+FILENAME = 'spin.pkl' # place to save
 
 WINDOW_WIDTH = 800 # window properties
 WINDOW_HEIGHT = 600
 
-I_1 = [[9.759e-5,  -4.039e-6, -1.060e-7], # mass properties
-       [-4.039e-6,  7.858e-5,  7.820e-9],
-       [ -1.060e-7, 7.820e-9,  1.743e-4]] # kg*m^2
 m_1 = 0.05223934 # kg
 cm_1 = [0.00215328, -0.00860001, -0.00038142] # m
+I_1 = [[9.759e-5,  -4.039e-6, -1.060e-7],
+       [-4.039e-6,  7.858e-5,  7.820e-9],
+       [ -1.060e-7, 7.820e-9,  1.743e-4]] # kg*m^2
 
-v_3 = [[ 1.00, 0.09, 0.02],
-       [-0.09, 1.00,-0.01],
-       [-0.02, 0.00, 1.00]]
-λ_3 = [0.26661841e-3, 2.15589278e-3, 2.41089260e-3] # kg*m^2
 m_3 = .529 # kg
 cm_3 = [-19.26e-3, -5.96e-3, -0.86e-3] # m
+v_3 = [[ 1.00, 0.09, 0.02],
+	   [-0.09, 1.00,-0.01],
+	   [-0.02, 0.00, 1.00]]
+λ_3 = [0.26661841e-3, 2.15589278e-3, 2.41089260e-3] # kg*m^2
+
+m_half = 1.003e-3 # kg
+cm_half = [3.102e-3, -0.487e-3, -0.003e-3] # m
+I_half = [[1.169e+1, 1.946e+0, 2.295e-4],
+	      [1.946e+0, 5.316e+1,-8.537e-3],
+	      [2.295e-4,-8.537e-3, 5.333e+1]] # kg*m^2
 
 
 if __name__ == '__main__':
@@ -53,7 +59,7 @@ if __name__ == '__main__':
 				# 'vapor':     RigidBody(5e-3, [0,0,0], 1.25e-7*np.identity(3)),
 				'dipole':    RigidBody(1.053e-4, [0,0,0], [[1.981e-9,0,0],[0,.013e-9,0],[0,0,1.981e-9]]),
 				'satellites':RigidBody(m_3, cm_3, axes=v_3, moments=λ_3, init_angularv=ω0, init_rotation=q0),
-				# 'half_barrel':RigidBody(.602e-3, [37.192e-3,39.997e-3,.246e-3], [[8.134e+0, 8.358e-1, 8.584e-3], [8.358e-1, 2.948e+1, -1.017e-2], [8.584e-3, -1.017e-2, 2.859e+1]], init_angularv=[120,0,0])
+				# 'half-barrel':RigidBody(m_half, cm_half, I_half, init_angularv=[126,0,0]),
 			}
 			sensors = {
 				# 'photo_0': Photodiode(bodies['satellites'], [0, 0, 1]),
@@ -70,11 +76,10 @@ if __name__ == '__main__':
 				Magnetorker(bodies['satellites'], BangBangBdot(sensors['magnetic'], max_moment=.2, axes=[1,1,1])),
 				PermanentMagnet(bodies['satellites'], [0, 0, 8*54.1*(1/8/2)**2*(1/8)]), # put diameter and height in inches into paretheses
 				Drag(bodies, [[0,0,0], drag_coef*np.array([.1*.01, .3*.01, .1*.3])], [[0,0,0], [0,0,0]]),
-				# Thruster(bodies['left_sat'], [0, .05,0], [-1, 0, 0], lambda t: [.001,0,-.001,-.001,0,.001][int(t)%6]),
-				# Thruster(bodies['left_sat'], [0,-.05,0], [ 1, 0, 0], lambda t: [.001,0,-.001,-.001,0,.001][int(t)%6]),
+				# Drag(bodies, [[8.9*9.6e-6, 8.9*26.7e-6, 9.6*26.7e-6]], [[0,0,0]]),
 			]
 			events = [
-				*[Launch(6600+1*i, bodies['satellites'], bodies['dipole'], [.02,-.040+.008*i,0], [0,0,.6], [63.,0,0]) for i in range(1)],
+				*[Launch(6600+1*i, bodies['satellites'], bodies['dipole'], [.02,-.040+.008*i,0], [0,0,.6], [63.,0,0], actually_do_it=False) for i in range(1)],
 				# Launch(30000, bodies['satellites'], bodies['vapor'], [0,0,0], [0,0,.1], [0,0,0]),
 				# Launch(35000, bodies['satellites'], bodies['vapor'], [0,0,0], [0,0,.1], [0,0,0]),
 			]
@@ -85,7 +90,7 @@ if __name__ == '__main__':
 				solar_flux=SunTable("../gmat_scripts/sunrise_sunset_table.txt"), # W/m^2
 				air_velocity=VelocityTable("../gmat_scripts/ReportFile1.txt"), # m/s
 				air_density=AtmosphericTable("../gmat_scripts/ReportFile1.txt"), # kg/m^3
-				verbose=True,
+				verbose=False,
 			)
 
 			print("		solving...")

@@ -32,9 +32,11 @@ if __name__ == '__main__':
 			R = q.rotation_matrix
 			I_inv = np.matmul(np.matmul(R, env.bodies[key].I_inv), R.transpose())
 			v = -env.get_air_velocity(t)
-			ωs[-1].append(np.linalg.norm(np.matmul(I_inv, y[i+10:i+13])))
+			ω = np.matmul(I_inv, y[i+10:i+13])
+			ωs[-1].append(np.linalg.norm(ω))
 			Es[-1].append(1/2*np.matmul(np.matmul(y[i+10:i+13], I_inv), y[i+10:i+13]))
 			ϴs[-1].append(np.arccos(np.dot(z_prime, v/np.linalg.norm(v))))
+			# ϴs[-1].append(np.arccos(np.dot(q.rotate([1,0,0]), ω/np.linalg.norm(ω))))
 
 	ωs = np.array(ωs)
 	Es = np.array(Es)
@@ -50,7 +52,7 @@ if __name__ == '__main__':
 		plt.semilogy(T/3600, Es[i,:], linewidth=.7, zorder=10-z)
 	plt.ylabel("Energy (J)")
 	plt.xlabel("Time (hr)")
-	plt.legend()
+	# plt.legend()
 
 	plt.figure()
 	plt.title("Angular velocity magnitude (c_D = {:n})".format(param))
@@ -58,7 +60,7 @@ if __name__ == '__main__':
 		plt.semilogy(T/3600, ωs[i,:]/(2*np.pi)*60, linewidth=.7, zorder=10-z)
 	plt.ylabel("Angular velocity (rpm)")
 	plt.xlabel("Time (hr)")
-	plt.legend()
+	# plt.legend()
 
 	plt.figure()
 	plt.title("Angle between launcher axis and orbital path (c_D = {:n})".format(param))
@@ -67,7 +69,7 @@ if __name__ == '__main__':
 	plt.ylabel("Angle (°)")
 	plt.xlabel("Time (hr)")
 	plt.yticks(np.linspace(0, 180, 7))
-	plt.legend()
+	# plt.legend()
 
 	# plt.figure()
 	# for i in range(4):
