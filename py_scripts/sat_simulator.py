@@ -85,6 +85,7 @@ if __name__ == '__main__':
 				solar_flux=SunTable("../gmat_scripts/sunrise_sunset_table.txt"), # W/m^2
 				air_velocity=VelocityTable("../gmat_scripts/ReportFile1.txt"), # m/s
 				air_density=AtmosphericTable("../gmat_scripts/ReportFile1.txt"), # kg/m^3
+				verbose=True,
 			)
 
 			print("		solving...")

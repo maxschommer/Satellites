@@ -2,6 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from scipy.integrate import solve_ivp
 from pyquaternion import Quaternion
+import time
 
 import constraint
 
@@ -12,7 +13,8 @@ CONSTRAINT_RECOVERY_TIME = .03 # making this smaller increases the precision wit
 class Environment():
 	""" A collection of bodies, constraints, and external forces that manages them all together. """
 	def __init__(self, bodies, sensors={}, constraints=[], external_impulsors=[], events=[],
-			magnetic_field=[0,0,0], solar_flux=[0,0,0], air_velocity=[0,0,0], air_density=0):
+			magnetic_field=[0,0,0], solar_flux=[0,0,0], air_velocity=[0,0,0], air_density=0,
+			verbose=False):
 		""" bodies:				{str:RigidBody}		the dict of bodies in the Universe
 			sensors:			{str:Sensor}		the dict of sensors that are entitled to certain information
 			constraints:		[Constraint]		the list of constraints between bodies to keep satisfied
@@ -22,6 +24,7 @@ class Environment():
 			solar_flux:			3 vector or Table	the value of the solar constant in W/m^2
 			air_velocity:		3 vector or Table	the value of the atmosphere's relative velocity in m/s
 			air_density:		3 vector or Table	the value of the atmospheric density in kg/m^3
+			verbose:			bool				should it print stuff when it's solving?
 		"""
 		self.bodies = bodies
 		for i, (key, body) in enumerate(bodies.items()):
@@ -44,6 +47,9 @@ class Environment():
 
 		self.solution = None
 		self.max_t = None
+
+		self.verbose = verbose
+		self.counter = 0
 
 		positions, rotations, I_inv_rots = [], [], [] # I would like to automatically deal with initial velocities that violate constraints
 		momentums, angularms = [], [] # luckily, the linearity of time derivatives is such that
@@ -110,6 +116,13 @@ class Environment():
 
 	def ode_func(self, t, state):
 		""" The state evolution vector to pass into Python's ODE solver. """
+		if self.verbose:
+			if self.counter <= 0:
+				print("[{: 15f}, {: 15f}],".format(time.time(), t))
+				self.counter = 10000
+			else:
+				self.counter -= 1
+
 		positions, rotations, velocitys, angularvs = [], [], [], []
 		momentums, angularms, I_inv_rots = [], [], []
 		angularv_qs = [] # this one is the derivative of the rotation in quaternion space
