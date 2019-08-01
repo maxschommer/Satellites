@@ -71,11 +71,13 @@ if __name__ == '__main__':
 	plt.yticks(np.linspace(0, 180, 7))
 	# plt.legend()
 
-	# plt.figure()
-	# for i in range(4):
-	# 	plt.plot(T/3600, environment.sensors['photo_{:d}'.format(i)].all_readings(T, Y), label="Sensor {:d}".format(i))
-	# plt.ylabel("Photodiode reading (W/m^2)")
-	# plt.xlabel("Time (hr)")
-	# plt.legend()
+	# for inds in [(np.abs(T-2264)<20), (np.abs(T-4384)<20)]:
+	# 	plt.figure()
+	# 	sensor_readings = [env.sensors['photo_{:d}'.format(i)].all_readings(T[inds], Y[inds]) for i in range(4)]
+	# 	for i in range(4):
+	# 		plt.plot(T[inds], sensor_readings[i], label="Sensor {:d}".format(i))
+	# 	plt.ylabel("Photodiode reading (W/m^2)")
+	# 	plt.xlabel("Time (s)")
+	# 	plt.legend()
 
 	plt.show()

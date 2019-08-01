@@ -46,8 +46,9 @@ class Photodiode(Sensor):
 
 	def reading(self, time, positions, rotations, velocitys, angularvs):
 		solar_flux = self.environment.get_solar_flux(time)
-		if np.dot(rotations[self.body.num].rotate(self.direction), solar_flux) >= 0:
-			return np.linalg.norm(solar_flux)
+		measured = np.dot(rotations[self.body.num].rotate(self.direction), solar_flux)
+		if measured >= 0:
+			return measured
 		else:
 			return 0
 

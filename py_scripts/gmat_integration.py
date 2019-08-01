@@ -11,6 +11,9 @@ import pandas as pd
 """
 
 
+SUNWEND_LENGTH = 7
+
+
 class Table:
 	""" An object that yields values at different times. """
 	def __init__(self):
@@ -39,10 +42,22 @@ class SunTable(Table):
 		self.solar_constant = solar_constant
 
 	def _value(self, t):
-		next_wend = self.table.iloc[self.table.ElapsedSecs.searchsorted(t)] # get the first event after this time
-		if next_wend.type == "Sunset": # if the sun is going down
-			return self.solar_constant # it must be up now
+		i = self.table.ElapsedSecs.searchsorted(t) # get the next event
+		if i-1 >= 0 and t - self.table.iloc[i-1].ElapsedSecs < SUNWEND_LENGTH/2: # if there's a previous event and we're close to it
+			nearest_wend = self.table.iloc[i-1] # look at that one
 		else: # otherwise
+			nearest_wend = self.table.iloc[i] # the next event will work fine
+		t_wend = (t - nearest_wend.ElapsedSecs)/(SUNWEND_LENGTH/2)
+		if nearest_wend.type == "Sunset": # if the sun is going down
+			if t_wend < -1:
+				return self.solar_constant
+			else:
+				return (np.arccos(t_wend) - t_wend*np.sqrt(1 - t_wend**2))/np.pi*self.solar_constant
+		else: # otherwise
+			if t_wend < -1:
+				return np.zeros(self.solar_constant.shape)
+			else:
+				return (np.arccos(-t_wend) + t_wend*np.sqrt(1 - t_wend**2))/np.pi*self.solar_constant
 			return np.zeros(3) # it must be down
 
 
