@@ -97,7 +97,7 @@ class Drag(Impulsor):
 	""" External force and torke imparted by collision with the atmosphere. """
 	def __init__(self, bodies, areas, cp_positions):
 		""" bodies:			{str:RigidBody}	the set of all bodies on which this will act
-			areas:			[3x3 matrix]	the effective area of the body on each axis with the drag coefficients multiplied in
+			areas:			[3 vector]		the effective area of the body on each axis with the drag coefficients multiplied in
 			cp_positions:	[3 vector]		the position of the centre of pressure in the body frame
 		"""
 		self.areas = [np.ones(3)*area for area in areas] # the area matrices are to be multiplied by the wind direction
@@ -116,6 +116,24 @@ class Drag(Impulsor):
 		# area_eff = np.sum(area_vec - np.abs(normalized(angularv)*rotation.rotate(area_vec))) # effective area times velocity magnitude
 		ω_squared_torke = 0#-1/2*area_eff**(2.5)*self.environment.get_air_density(time)*np.linalg.norm(angularv)*angularv
 		return r_cross_f_torke + ω_squared_torke # combine torque due to offset center of pressure and against rotation of body
+
+
+class Parachute(Impulsor):
+	""" External force and torke imparted by a massless tethered sphere. """
+	def __init__(self, body, area, position):
+		""" body:		RigidBody	the set of all bodies on which this will act
+			area:		float		the effective area of the dragging object with the drag coefficients multiplied in
+			position:	[3 vector]	the position of the centre of pressure in the body frame
+		"""
+		self.area = area
+		self.cp_position = position
+
+	def force_on(self, body, time, position, rotation, velocity, angularv):
+		v = self.environment.get_air_velocity(time)
+		return 1/2*self.area*self.environment.get_air_density(time)*np.linalg.norm(v)*v
+
+	def torke_on(self, body, time, position, rotation, velocity, angularv):
+		return np.cross(rotation.rotate(self.cp_position), self.force_on(body, time, position, rotation, velocity, angularv))
 
 
 def normalized(vec):
