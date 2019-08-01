@@ -35,7 +35,7 @@ if __name__ == '__main__':
 			v = -env.get_air_velocity(t)
 			ω = np.matmul(I_inv, y[i+10:i+13])
 			ωs[-1].append(np.linalg.norm(ω))
-			# Es[-1].append(1/2*np.matmul(np.matmul(y[i+10:i+13], I_inv), y[i+10:i+13]))
+			Es[-1].append(1/2*np.matmul(np.matmul(y[i+10:i+13], I_inv), y[i+10:i+13]))
 			ϴs[-1].append(np.arccos(np.dot(z_prime, v/np.linalg.norm(v))))
 			# ϴs[-1].append(np.arccos(np.dot(q.rotate([1,0,0]), ω/np.linalg.norm(ω))))
 
