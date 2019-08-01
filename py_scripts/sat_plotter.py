@@ -6,7 +6,7 @@ import seaborn as sns
 sns.set_style('whitegrid')
 
 
-FILENAME = 'magnet-{:.0e}-{:01d}.pkl'
+FILENAME = 'magnet-{:.0e}-{:02d}-{:1d}.pkl'
 
 
 if __name__ == '__main__':
@@ -14,9 +14,10 @@ if __name__ == '__main__':
 	Es = []
 	ϴs = []
 	param = .1
-	for seed in [5, 4, 3, 2, 1, 0]:
+	num_magnets = 0
+	for seed in [17, 19, 21, 23, 25, 27]:
 		print('loading', param, seed)
-		with open('../simulations/{}'.format(FILENAME.format(param, seed)), 'rb') as f:
+		with open('../simulations/{}'.format(FILENAME.format(param, seed, num_magnets)), 'rb') as f:
 			env = pickle.load(f)
 
 		T, Y = env.solution
@@ -34,25 +35,26 @@ if __name__ == '__main__':
 			v = -env.get_air_velocity(t)
 			ω = np.matmul(I_inv, y[i+10:i+13])
 			ωs[-1].append(np.linalg.norm(ω))
-			Es[-1].append(1/2*np.matmul(np.matmul(y[i+10:i+13], I_inv), y[i+10:i+13]))
+			# Es[-1].append(1/2*np.matmul(np.matmul(y[i+10:i+13], I_inv), y[i+10:i+13]))
 			ϴs[-1].append(np.arccos(np.dot(z_prime, v/np.linalg.norm(v))))
 			# ϴs[-1].append(np.arccos(np.dot(q.rotate([1,0,0]), ω/np.linalg.norm(ω))))
 
 	ωs = np.array(ωs)
 	Es = np.array(Es)
 	ϴs = np.array(ϴs)
-	env = None # clear up some memory
 
 	order = np.argsort(Es[:,0])
 	# order = np.arange(0, len(Es[:,0]))
 
-	plt.figure()
-	plt.title("Rotational kinetic energy (c_D = {:n})".format(param))
-	for z, i in enumerate(order):
-		plt.semilogy(T/3600, Es[i,:], linewidth=.7, zorder=10-z)
-	plt.ylabel("Energy (J)")
-	plt.xlabel("Time (hr)")
-	# plt.legend()
+	sns.set_palette(sns.cubehelix_palette(6, start=0, rot=-.17, light=.7))
+
+	# plt.figure()
+	# plt.title("Rotational kinetic energy (c_D = {:n})".format(param))
+	# for z, i in enumerate(order):
+	# 	plt.semilogy(T/3600, Es[i,:], linewidth=.7, zorder=10-z)
+	# plt.ylabel("Energy (J)")
+	# plt.xlabel("Time (hr)")
+	# # plt.legend()
 
 	plt.figure()
 	plt.title("Angular velocity magnitude (c_D = {:n})".format(param))
