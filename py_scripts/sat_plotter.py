@@ -43,7 +43,7 @@ if __name__ == '__main__':
 	Es = np.array(Es)
 	ϴs = np.array(ϴs)
 
-	order = np.argsort(Es[:,0])
+	order = np.argsort(-Es[:,0])
 	# order = np.arange(0, len(Es[:,0]))
 
 	sns.set_palette(sns.cubehelix_palette(6, start=0, rot=-.17, light=.7))
@@ -77,7 +77,7 @@ if __name__ == '__main__':
 	# 	plt.figure()
 	# 	sensor_readings = [env.sensors['photo_{:d}'.format(i)].all_readings(T[inds], Y[inds]) for i in range(4)]
 	# 	for i in range(4):
-	# 		plt.plot(T[inds], sensor_readings[i], label="Sensor {:d}".format(i))
+	# 		plt.plot(T[inds], sensor_readings[i], label=["Top", "Left", "Bottom", "Right"][i])
 	# 	plt.ylabel("Photodiode reading (W/m^2)")
 	# 	plt.xlabel("Time (s)")
 	# 	plt.legend()

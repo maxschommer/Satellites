@@ -125,15 +125,22 @@ class Parachute(Impulsor):
 			area:		float		the effective area of the dragging object with the drag coefficients multiplied in
 			position:	[3 vector]	the position of the centre of pressure in the body frame
 		"""
+		self.body = body
 		self.area = area
-		self.cp_position = position
+		self.cp_position = position - body.cm_position
 
 	def force_on(self, body, time, position, rotation, velocity, angularv):
-		v = self.environment.get_air_velocity(time)
-		return 1/2*self.area*self.environment.get_air_density(time)*np.linalg.norm(v)*v
+		if body == self.body:
+			v = self.environment.get_air_velocity(time)
+			return 1/2*self.area*self.environment.get_air_density(time)*np.linalg.norm(v)*v
+		else:
+			return np.zeros(3)
 
 	def torke_on(self, body, time, position, rotation, velocity, angularv):
-		return np.cross(rotation.rotate(self.cp_position), self.force_on(body, time, position, rotation, velocity, angularv))
+		if body == self.body:
+			return np.cross(rotation.rotate(self.cp_position), self.force_on(body, time, position, rotation, velocity, angularv))
+		else:
+			return np.zeros(3)
 
 
 def normalized(vec):

@@ -45,7 +45,6 @@ if __name__ == '__main__':
 				FILENAME = 'magnet-{:.0e}-{:02d}-{:1d}.pkl'.format(drag_coef, seed, num_magnets)
 				np.random.seed(seed) # make it reproduceable 
 
-				drag_coef = 1
 				q0 = np.random.randn(4) # pick some initial conditions
 				q0 = q0/np.linalg.norm(q0)
 				v0 = [0, 0, 0] # m/s
@@ -75,7 +74,7 @@ if __name__ == '__main__':
 					Magnetorker(bodies['satellites'], BangBangBdot(sensors['magnetic'], max_moment=.2, axes=[1,1,1])),
 					PermanentMagnet(bodies['satellites'], [0, 0, num_magnets*54.1*(1/8/2)**2*(1/8)]), # put diameter and height in inches into paretheses
 					Drag(bodies, [drag_coef*np.array([.1*.01, .3*.01, .1*.3])], [[0,0,0]]),
-					Parachute(bodies['satellites'], .01, [-.15, 0, -.005])
+					Parachute(bodies['satellites'], drag_coef*.01, [-.15, 0, -.005])
 					# Drag(bodies, [[8.9*9.6e-6, 8.9*26.7e-6, 9.6*26.7e-6]], [[0,0,0]]),
 				]
 				events = [
