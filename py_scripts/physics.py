@@ -230,6 +230,10 @@ class Environment():
 		else:
 			return self.air_density
 
+	def get_down(self, t): # with your bad self
+		r = np.cross(self.get_air_velocity(t), self.get_magnetic_field(t))
+		return r/np.linalg.norm(r)
+
 	def global_cm(self, t):
 		cm = np.zeros(3)
 		n = 0

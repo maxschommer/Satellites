@@ -11,7 +11,7 @@ from rendering import Stage, BodyActor, VectorActor, VectorFieldActor
 WINDOW_WIDTH = 800
 WINDOW_HEIGHT = 600
 
-FILENAME = 'magnet-1e-01-17-0.pkl'
+FILENAME = 'magnet_1e-01_17_0.pkl'
 
 CAMERA_POS = np.array([-.5, -.1, .1])
 

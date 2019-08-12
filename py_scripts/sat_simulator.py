@@ -42,7 +42,7 @@ if __name__ == '__main__':
 				print("	c_D = {:.0e}".format(drag_coef))
 				print("		setting up environment...")
 
-				FILENAME = 'magnet-{:.0e}-{:02d}-{:1d}.pkl'.format(drag_coef, seed, num_magnets)
+				FILENAME = 'magnet_{:.0e}_{:02d}_{:1d}.pkl'.format(drag_coef, seed, num_magnets)
 				np.random.seed(seed) # make it reproduceable 
 
 				q0 = np.random.randn(4) # pick some initial conditions
@@ -93,7 +93,7 @@ if __name__ == '__main__':
 				)
 
 				print("		solving...")
-				environment.solve(0, 6600, method='LSODA') # run the simulation
+				environment.solve(0, 20000, method='LSODA') # run the simulation
 				
 				print("		saving as {}...".format(FILENAME))
 				environment.shell() # strip away the unpicklable parts
